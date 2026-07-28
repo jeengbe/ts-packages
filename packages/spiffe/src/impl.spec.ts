@@ -1,0 +1,211 @@
+import { NoSvidError } from './error';
+import { SpiffeClient } from './impl';
+import { SpiffeWorkloadAPI } from './proto/workloadapi_pb';
+import type { ConnectRouter, ServiceImpl } from '@connectrpc/connect';
+import { Code, ConnectError } from '@connectrpc/connect';
+import { connectNodeAdapter } from '@connectrpc/connect-node';
+import * as fs from 'fs/promises';
+import * as http2 from 'node:http2';
+
+type FetchJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchJWTSVID'];
+type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVID'];
+
+describe('SpiffeClientImpl', () => {
+  let socketPath: string;
+  let socketUri: string;
+  let server: http2.Http2Server;
+  let fetchJWTSVID: jest.Mock<FetchJWTSVIDImpl>;
+  let validateJWTSVID: jest.Mock<ValidateJWTSVIDImpl>;
+  let client: SpiffeClient;
+
+  beforeAll(async () => {
+    socketPath = `${await fs.mkdtemp('/tmp/spiffe-client-test-')}/socket.sock`;
+    socketUri = `unix://${socketPath}`;
+
+    server = http2.createServer(
+      connectNodeAdapter({
+        routes: (router: ConnectRouter) => {
+          router.service(SpiffeWorkloadAPI, {
+            fetchJWTSVID: (req, ctx) => fetchJWTSVID(req, ctx),
+            validateJWTSVID: (req, ctx) => validateJWTSVID(req, ctx),
+          });
+        },
+      }),
+    );
+
+    await new Promise<void>((resolve, reject) => {
+      server.listen(socketPath, (err?: Error) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+  });
+
+  beforeEach(() => {
+    fetchJWTSVID = jest.fn<FetchJWTSVIDImpl>(() => {
+      throw new ConnectError('Not implemented', Code.Unimplemented);
+    });
+    validateJWTSVID = jest.fn<ValidateJWTSVIDImpl>(() => {
+      throw new ConnectError('Not implemented', Code.Unimplemented);
+    });
+
+    client = new SpiffeClient(socketUri);
+  });
+
+  afterEach(async () => {
+    await client.close();
+  });
+
+  describe('SpiffeJwtClient', () => {
+    describe('getJwt', () => {
+      const fakeJwt = `1.${Buffer.from(
+        JSON.stringify({
+          exp: Math.floor(Date.now() / 1000) + 10 * 60, // 10 minutes in the future
+        }),
+        'utf-8',
+      ).toString('base64url')}.`;
+      const fakeJwt2 = `2.${Buffer.from(
+        JSON.stringify({
+          exp: Math.floor(Date.now() / 1000) + 10 * 60, // 10 minutes in the future
+        }),
+        'utf-8',
+      ).toString('base64url')}.`;
+
+      it('should return JWT for the specified audience', async () => {
+        fetchJWTSVID.mockImplementationOnce(() => ({
+          svids: [
+            {
+              spiffeId: 'spiffe://example.org/test',
+              svid: fakeJwt,
+              hint: '',
+            },
+          ],
+        }));
+
+        expect(await client.getJwt('test-audience')).toBe(fakeJwt);
+      });
+
+      it('should request multiple audiences', async () => {
+        fetchJWTSVID.mockImplementationOnce(() => ({
+          svids: [
+            {
+              spiffeId: 'spiffe://example.org/test',
+              svid: fakeJwt,
+              hint: '',
+            },
+          ],
+        }));
+
+        expect(await client.getJwt('test-audience')).toBe(fakeJwt);
+      });
+
+      it('should cache the returned JWT', async () => {
+        fetchJWTSVID.mockImplementation(() => {
+          const fakeJwt = `.${Buffer.from(
+            JSON.stringify({
+              exp: Math.floor(Date.now() / 1000) + 2,
+            }),
+            'utf-8',
+          ).toString('base64url')}.`;
+
+          return {
+            svids: [
+              {
+                spiffeId: 'spiffe://example.org/test',
+                svid: fakeJwt,
+                hint: '',
+              },
+            ],
+          };
+        });
+
+        const firstJwt = await client.getJwt('test-audience');
+        await client.getJwt('test-audience');
+
+        expect(fetchJWTSVID).toHaveBeenCalledTimes(1);
+
+        await new Promise((resolve) => setTimeout(resolve, 4000));
+
+        expect(await client.getJwt('test-audience')).not.toBe(firstJwt);
+
+        expect(fetchJWTSVID).toHaveBeenCalledTimes(2);
+      });
+
+      it('should filter for hint if provided', async () => {
+        fetchJWTSVID.mockImplementationOnce(() => ({
+          svids: [
+            {
+              spiffeId: 'spiffe://example.org/test1',
+              svid: fakeJwt,
+              hint: 'hint1',
+            },
+            {
+              spiffeId: 'spiffe://example.org/test2',
+              svid: fakeJwt2,
+              hint: 'hint2',
+            },
+          ],
+        }));
+
+        expect(await client.getJwt('test-audience', 'hint2')).toBe(fakeJwt2);
+      });
+
+      it('should throw NoSvidError if no SVIDs are returned', async () => {
+        fetchJWTSVID.mockImplementationOnce(() => ({ svids: [] }));
+
+        await expect(client.getJwt('test-audience')).rejects.toThrow(NoSvidError);
+      });
+
+      it('should throw NoSvidError if call fails with PERMISSION_DENIED', async () => {
+        fetchJWTSVID.mockImplementation(() => {
+          throw new ConnectError('Permission denied', Code.PermissionDenied);
+        });
+
+        await using fastClient = new SpiffeClient(socketUri, {
+          maxAttempts: 2,
+          initialDelayMs: 1,
+          maxDelayMs: 1,
+        });
+
+        await expect(fastClient.getJwt('test-audience')).rejects.toThrow(NoSvidError);
+      });
+    });
+
+    describe('validateJwt', () => {
+      it('should return a decoded valid SVID', async () => {
+        validateJWTSVID.mockImplementationOnce(() => ({
+          spiffeId: 'fake-spiffe-id',
+          claims: {
+            sub: 'fake',
+            aud: ['fake'],
+            exp: 1234,
+          },
+        }));
+
+        expect(await client.validateJwt('test-audience', 'test-token')).toEqual({
+          spiffeId: 'fake-spiffe-id',
+          claims: {
+            sub: 'fake',
+            aud: ['fake'],
+            exp: 1234,
+          },
+        });
+      });
+    });
+  });
+});

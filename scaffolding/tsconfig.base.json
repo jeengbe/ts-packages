@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "lib": ["esnext"],
+    "types": ["@jeengbe/scaffolding"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "moduleDetection": "force",
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+
+    "isolatedModules": true,
+
+    "declaration": true,
+    "declarationMap": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+
+    "noEmit": true,
+
+    "rootDir": "${configDir}/src"
+  },
+  "include": ["${configDir}/src/**/*"]
+}

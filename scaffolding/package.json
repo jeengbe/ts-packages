@@ -1,0 +1,35 @@
+{
+  "name": "@jeengbe/scaffolding",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "files": [
+    "tsconfig.base.json",
+    "tsdown.config.base.ts",
+    "vitest.config.base.ts",
+    "oxlint.config.base.ts",
+    "oxfmt.config.base.ts",
+    "types.d.ts"
+  ],
+  "type": "module",
+  "types": "types.d.ts",
+  "scripts": {
+    "lint": "oxlint --fix . && oxfmt --write .",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@total-typescript/ts-reset": "^0.6.1",
+    "@types/node": "^26.1.1",
+    "ansis": "^4.3.1",
+    "jest-extended": "^7.0.0",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tsdown": "catalog:",
+    "vitest": "catalog:",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@jeengbe/scaffolding": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

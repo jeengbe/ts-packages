@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
+  "changelog": [
+    "@changesets/changelog-github",
+    {
+      "repo": "jeengbe/ts-packages",
+      "disableThanks": true
+    }
+  ],
+  "access": "public",
+  "baseBranch": "master",
+  "updateInternalDependencies": "patch"
+}

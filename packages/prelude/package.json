@@ -1,0 +1,35 @@
+{
+  "name": "@jeengbe/prelude",
+  "version": "0.0.0",
+  "license": "MIT",
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.spec.ts"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "lint": "oxlint --fix . && oxfmt --write .",
+    "test": "vitest",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@jeengbe/scaffolding": "workspace:*",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

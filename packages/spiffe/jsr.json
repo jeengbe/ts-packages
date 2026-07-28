@@ -1,0 +1,13 @@
+{
+  "$schema": "https://jsr.io/schema/config-file.v1.json",
+  "name": "@jeengbe/spiffe",
+  "version": "0.6.0",
+  "exports": {
+    ".": "./src/index.ts",
+    "./google-auth": "./src/google-auth.ts",
+    "./kafkajs": "./src/kafkajs.ts"
+  },
+  "publish": {
+    "include": ["src", "README.md", "LICENSE"]
+  }
+}
