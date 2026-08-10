@@ -2,6 +2,11 @@
   "name": "@jeengbe/config",
   "version": "0.0.0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeengbe/ts-packages.git",
+    "directory": "packages/config"
+  },
   "files": [
     "dist",
     "src",

@@ -27,7 +27,10 @@ export const base = defineConfig({
   },
   hooks: {
     async 'build:done'({ options: { logger, root } }) {
-      await verifyPackageMeta(logger, new URL(`file://${root}`));
+      await verifyPackageMeta(
+        logger,
+        new URL(`file://${root.substring(0, root.length - 'src'.length)}`),
+      );
     },
   },
 });
