@@ -2,7 +2,7 @@ import type { TtlCacheEngine } from './adapters/index.js';
 import { MemoryCacheAdapter } from './adapters/index.js';
 import type { CacheOptions } from './cache.js';
 import { Cache, CacheOperation } from './cache.js';
-import { describe, beforeEach, it, expect, Mocked, vitest } from 'vitest';
+import { beforeEach, describe, expect, it, Mocked, vitest } from 'vitest';
 
 class MockTtlCacheEngine implements TtlCacheEngine<string, string> {
   private readonly values = new Map<string, [value: string, ttl: number]>();
@@ -102,7 +102,7 @@ describe('Cache', () => {
 
       await cache.get('foo');
 
-      expect(mockOptions.deserialize).toHaveBeenCalledWith('"bar"', 'foo');
+      expect(mockOptions.deserialize).toHaveBeenCalledWith('bar', 'foo');
     });
 
     it('uses prefix', async () => {
@@ -166,8 +166,8 @@ describe('Cache', () => {
 
       await cache.mget(['a', 'b', 'c', 'd']);
 
-      expect(mockOptions.deserialize).toHaveBeenCalledWith('"bar"', 'b');
-      expect(mockOptions.deserialize).toHaveBeenCalledWith('"baz"', 'd');
+      expect(mockOptions.deserialize).toHaveBeenCalledWith('bar', 'b');
+      expect(mockOptions.deserialize).toHaveBeenCalledWith('baz', 'd');
     });
 
     it('does nothing if nothing requested', async () => {
@@ -675,7 +675,7 @@ describe('Cache', () => {
 
       await cache.cached('foo', async () => 'baz', 0);
 
-      expect(mockOptions.deserialize).toHaveBeenCalledWith('"bar"', 'foo');
+      expect(mockOptions.deserialize).toHaveBeenCalledWith('bar', 'foo');
     });
 
     it('runs the producer if nothing cached', async () => {
@@ -828,8 +828,8 @@ describe('Cache', () => {
         0,
       );
 
-      expect(mockOptions.deserialize).toHaveBeenCalledWith('"bar"', 'foo-b');
-      expect(mockOptions.deserialize).toHaveBeenCalledWith('"baz"', 'foo-d');
+      expect(mockOptions.deserialize).toHaveBeenCalledWith('bar', 'foo-b');
+      expect(mockOptions.deserialize).toHaveBeenCalledWith('baz', 'foo-d');
     });
 
     it('serializes the values before storing them', async () => {

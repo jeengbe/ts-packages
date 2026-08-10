@@ -8,6 +8,7 @@
     "changeset": "changeset",
     "lint": "oxlint --fix . && oxfmt --write .",
     "lint:readonly": "oxlint . && oxfmt --check .",
+    "release": "pnpm run build && changeset publish",
     "test": "pnpm -r run test",
     "test:coverage": "vitest run --coverage",
     "version": "changeset version"
