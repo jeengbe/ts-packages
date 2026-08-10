@@ -1,5 +1,11 @@
 # @jeengbe/scaffolding
 
+## 0.0.2
+
+### Patch Changes
+
+- [`58bd112`](https://github.com/jeengbe/ts-packages/commit/58bd112ab9309d438e609c00325983eac8e4aac3) - fix: release
+
 ## 0.0.1
 
 ### Patch Changes
