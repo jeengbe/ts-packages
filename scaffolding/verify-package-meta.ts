@@ -62,41 +62,56 @@ function createPackageJsonSchema(packageDir: URL) {
   // .../packages/<package-name>/
   const packageName = packageDir.pathname.split('/').at(-2);
 
-  return z.object({
-    name: z.literal(`@jeengbe/${packageName}`),
-    version: z.string(),
-    license: z.literal('MIT'),
-    repository: z.object({
-      type: z.literal('git'),
-      url: z.literal('git+https://github.com/jeengbe/ts-packages.git'),
-      directory: z.literal(`packages/${packageName}`),
-    }),
-    type: z.literal('module'),
-    files: z
-      .array(z.string())
-      .refine(
-        (files) => ['dist', 'src', '!src/**/*.spec.ts'].every((file) => files.includes(file)),
-        {
-          message: 'files must include dist, src, and !src/**/*.spec.ts',
-        },
+  return z
+    .object({
+      name: z.literal(`@jeengbe/${packageName}`),
+      version: z.string(),
+      license: z.literal('MIT'),
+      repository: z.object({
+        type: z.literal('git'),
+        url: z.literal('git+https://github.com/jeengbe/ts-packages.git'),
+        directory: z.literal(`packages/${packageName}`),
+      }),
+      type: z.literal('module'),
+      files: z
+        .array(z.string())
+        .refine(
+          (files) => ['dist', 'src', '!src/**/*.spec.ts'].every((file) => files.includes(file)),
+          {
+            message: 'files must include dist, src, and !src/**/*.spec.ts',
+          },
+        ),
+      main: z.literal('./dist/index.mjs'),
+      typings: z.literal('./dist/index.d.mts'),
+      exports: z.record(
+        z.string(),
+        z
+          .object({
+            types: z.string(),
+            default: z.string(),
+          })
+          .refine((entry) => entry.types.startsWith('./dist/'), {
+            message: 'exports must point to a file in dist',
+            path: [],
+          })
+          .refine((entry) => entry.types === entry.default.replace(/\.mjs$/, '.d.mts'), {
+            message: 'types must be the .d.mts counterpart of default',
+            path: ['types'],
+          }),
       ),
-    exports: z.record(
-      z.string(),
-      z
-        .object({
-          types: z.string(),
-          default: z.string(),
-        })
-        .refine((entry) => entry.types.startsWith('./dist/'), {
-          message: 'exports must point to a file in dist',
-          path: [],
-        })
-        .refine((entry) => entry.types === entry.default.replace(/\.mjs$/, '.d.mts'), {
-          message: 'types must be the .d.mts counterpart of default',
-          path: ['types'],
-        }),
-    ),
-  });
+    })
+    .refine((pkg) => pkg.exports['.'] !== undefined, {
+      message: 'exports must include a "." entry',
+      path: ['exports'],
+    })
+    .refine((pkg) => pkg.main === pkg.exports['.']?.default, {
+      message: 'main must match the "." export\'s default',
+      path: ['main'],
+    })
+    .refine((pkg) => pkg.typings === pkg.exports['.']?.types, {
+      message: 'typings must match the "." export\'s types',
+      path: ['typings'],
+    });
 }
 
 export type PackageJson = z.infer<ReturnType<typeof createPackageJsonSchema>>;

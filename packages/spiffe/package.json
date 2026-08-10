@@ -23,6 +23,8 @@
   ],
   "type": "module",
   "sideEffects": false,
+  "main": "./dist/index.mjs",
+  "typings": "./dist/index.d.mts",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
