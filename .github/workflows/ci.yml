@@ -79,5 +79,5 @@ jobs:
         if: steps.changesets.outputs.published == 'true'
         run: |
           for dir in packages/*/; do
-            (cd "$dir" && npx jsr publish --provenance)
+            (cd "$dir" && npx jsr publish)
           done

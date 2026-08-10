@@ -5,6 +5,18 @@ import { z } from 'zod';
 
 const TAG = gray('[verify-package-meta]');
 
+const DIST_MJS_PATH = /^\.\/dist\/(.+)\.mjs$/;
+
+function distDefaultToSrcPath(defaultPath: string): string {
+  const match = DIST_MJS_PATH.exec(defaultPath);
+
+  if (!match) {
+    throw new Error(`Expected export default to match ${DIST_MJS_PATH}, got: ${defaultPath}`);
+  }
+
+  return `./src/${match[1]}.ts`;
+}
+
 export async function verifyPackageMeta(logger: Logger, packageDir: URL): Promise<void> {
   const packageJson = await verifyPackageJson(logger, packageDir);
 
@@ -45,7 +57,7 @@ async function syncPackageJsonToJsr(
     exports: Object.fromEntries(
       Object.entries(packageJson.exports).map(([key, value]) => [
         key,
-        value.default.replace(/^\.\/dist\/(.*)\.mjs$/, './src/$1.ts'),
+        distDefaultToSrcPath(value.default),
       ]),
     ),
     publish: {
@@ -90,9 +102,9 @@ function createPackageJsonSchema(packageDir: URL) {
             types: z.string(),
             default: z.string(),
           })
-          .refine((entry) => entry.types.startsWith('./dist/'), {
-            message: 'exports must point to a file in dist',
-            path: [],
+          .refine((entry) => DIST_MJS_PATH.test(entry.default), {
+            message: `default must match ${DIST_MJS_PATH}`,
+            path: ['default'],
           })
           .refine((entry) => entry.types === entry.default.replace(/\.mjs$/, '.d.mts'), {
             message: 'types must be the .d.mts counterpart of default',
