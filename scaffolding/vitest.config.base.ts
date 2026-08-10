@@ -5,9 +5,6 @@ export function base(rootDir: string) {
   return defineConfig({
     root: rootDir,
     test: {
-      coverage: {
-        reporter: ['text', 'json-summary', 'json'],
-      },
       exclude: [...configDefaults.exclude, '**/dist/**'],
       reporters: 'verbose',
       passWithNoTests: true,
