@@ -54,6 +54,7 @@ async function syncPackageJsonToJsr(
     $schema: 'https://jsr.io/schema/config-file.v1.json',
     name: packageJson.name,
     version: packageJson.version,
+    license: packageJson.license,
     exports: Object.fromEntries(
       Object.entries(packageJson.exports).map(([key, value]) => [
         key,
