@@ -30,19 +30,31 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Create Release PR or publish to npm
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: pnpm run version
-          publish: pnpm run release
-          commit: 'chore: version packages'
-          title: 'chore: version packages'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Version packages
+        id: version
+        run: |
+          pnpm run version
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit version changes
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m 'chore: version packages'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Publish to npm
+        if: steps.version.outputs.changed == 'true'
+        run: pnpm changeset publish
 
       - name: Publish to JSR
-        if: steps.changesets.outputs.published == 'true'
+        if: steps.version.outputs.changed == 'true'
         run: |
           for dir in packages/*/; do
             (cd "$dir" && npx jsr publish --provenance)
