@@ -2,7 +2,7 @@ import type { CacheAdapter } from './interface.js';
 
 export class VoidCacheAdapter implements CacheAdapter {
   async mget(keys: readonly string[]): Promise<(string | undefined)[]> {
-    return new Array<undefined>(keys.length).fill(undefined);
+    return Array.from<undefined>({ length: keys.length }).fill(undefined);
   }
 
   async mset(): Promise<void> {
@@ -18,7 +18,7 @@ export class VoidCacheAdapter implements CacheAdapter {
   }
 
   async mhas(keys: readonly string[]): Promise<boolean[]> {
-    return new Array<boolean>(keys.length).fill(false);
+    return Array.from<boolean>({ length: keys.length }).fill(false);
   }
 
   async getRemainingTtl(): Promise<number | undefined> {

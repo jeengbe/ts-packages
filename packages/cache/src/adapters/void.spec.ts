@@ -1,15 +1,12 @@
-import type { CacheAdapter } from './interface';
-import { VoidCacheAdapter } from './void';
+import type { CacheAdapter } from './interface.js';
+import { VoidCacheAdapter } from './void.js';
+import { describe, beforeEach, test, expect } from 'vitest';
 
 describe('VoidCacheAdapter', () => {
   let adapter: CacheAdapter;
 
   beforeEach(() => {
     adapter = new VoidCacheAdapter();
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
   });
 
   test('mset does nothing', async () => {

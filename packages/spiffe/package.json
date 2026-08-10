@@ -44,8 +44,7 @@
     "build": "tsdown",
     "generate:proto": "buf generate",
     "lint": "oxlint --fix . && oxfmt --write .",
-    "test": "vitest",
-    "typecheck": "tsc"
+    "test": "vitest"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.13.0",

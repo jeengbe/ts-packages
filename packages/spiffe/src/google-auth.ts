@@ -23,8 +23,9 @@ export class SpiffeJwtGoogleSubjectTokenSupplier implements SubjectTokenSupplier
   async getSubjectToken(context: ExternalAccountSupplierContext): Promise<string> {
     this.#spiffeClient ??= typeof this.spiffe === 'function' ? this.spiffe() : this.spiffe;
 
-    assert(
-      context.subjectTokenType === 'urn:ietf:params:oauth:token-type:jwt',
+    assert.strictEqual(
+      context.subjectTokenType,
+      'urn:ietf:params:oauth:token-type:jwt',
       "SpiffeJwtGoogleSubjectTokenSupplier can only provide 'urn:ietf:params:oauth:token-type:jwt' subject tokens",
     );
 

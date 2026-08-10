@@ -23,7 +23,7 @@ export class RedisCacheAdapter implements CacheAdapter {
   async mset(entries: readonly [key: string, value: string, ttlMs: number][]): Promise<void> {
     try {
       if (entries.length === 1) {
-        const [[key, value, ttlMs]] = entries;
+        const [key, value, ttlMs] = entries[0]!;
 
         await this._set(key, value, ttlMs);
       } else {

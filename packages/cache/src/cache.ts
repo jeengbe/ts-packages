@@ -1,6 +1,7 @@
 import { type CacheAdapter } from './adapters/index.js';
 import type { TtlExpression } from './ttl.js';
 import { ttlToMs } from './ttl.js';
+import assert from 'assert';
 import EventEmitter from 'events';
 
 export interface CacheOptions<Entries extends Record<string, unknown> = Record<string, unknown>> {
@@ -137,15 +138,20 @@ export class Cache<
     const cacheKeys = keys.map((key) => this.getCacheKey(key));
 
     const res = await this.cacheAdapter.mget(cacheKeys);
+    assert.strictEqual(
+      res.length,
+      keys.length,
+      'The cache adapter returned a different number of results than requested.',
+    );
 
     return res.map((r, i) => {
       if (r === undefined) {
-        this.emit('read', keys[i], false, CacheOperation.Mget);
+        this.emit('read', keys[i]!, false, CacheOperation.Mget);
         return undefined;
       }
 
-      this.emit('read', keys[i], true, CacheOperation.Mget);
-      return this.deserialize(r, keys[i]);
+      this.emit('read', keys[i]!, true, CacheOperation.Mget);
+      return this.deserialize(r, keys[i]!);
     }) as {
       -readonly [I in keyof K]: Entries[K[I]] | undefined;
     };
@@ -290,9 +296,14 @@ export class Cache<
   async has(key: keyof Entries & string): Promise<boolean> {
     const cacheKey = this.getCacheKey(key);
 
-    const [res] = await this.cacheAdapter.mhas([cacheKey]);
+    const res = await this.cacheAdapter.mhas([cacheKey]);
+    assert.strictEqual(
+      res.length,
+      1,
+      'The cache adapter returned a different number of results than requested.',
+    );
 
-    return res;
+    return res[0]!;
   }
 
   /**
@@ -393,42 +404,44 @@ export class Cache<
     const cacheKeys = keys.map((k) => this.getCacheKey(k));
 
     const cachedResults = await this.cacheAdapter.mget(cacheKeys);
-    const toReturn = new Array<Entries[K]>(data.length);
+    assert.strictEqual(
+      cachedResults.length,
+      keys.length,
+      'The cache adapter returned a different number of results than requested.',
+    );
+    const toReturn = Array.from<Entries[K]>({ length: data.length });
     const missingIndices: number[] = [];
 
     cachedResults.forEach((result, i) => {
       if (result === undefined) {
-        this.emit('read', keys[i], false, CacheOperation.Mcached);
+        this.emit('read', keys[i]!, false, CacheOperation.Mcached);
         missingIndices.push(i);
       } else {
-        this.emit('read', keys[i], true, CacheOperation.Mcached);
-        toReturn[i] = this.deserialize(result, keys[i]) as Entries[K];
+        this.emit('read', keys[i]!, true, CacheOperation.Mcached);
+        toReturn[i] = this.deserialize(result, keys[i]!) as Entries[K];
       }
     });
 
     if (!missingIndices.length) return toReturn;
 
-    const missingData = missingIndices.map((index) => data[index]);
+    const missingData = missingIndices.map((index) => data[index]!);
     const producedValues = await producer(missingData);
 
-    if (producedValues.length !== missingData.length) {
-      throw new Error('The producer did not return exactly as many results as inputs were given.', {
-        cause: {
-          missingData,
-          producedValues,
-        },
-      });
-    }
+    assert.strictEqual(
+      producedValues.length,
+      missingData.length,
+      'The producer did not return exactly as many results as inputs were given.',
+    );
 
-    const toStore = new Array<[string, string, number]>(producedValues.length);
+    const toStore = Array.from<[string, string, number]>({ length: producedValues.length });
 
     producedValues.forEach((value, index) => {
-      const returnIndex = missingIndices[index];
+      const returnIndex = missingIndices[index]!;
 
       toReturn[returnIndex] = value;
       toStore[index] = [
-        cacheKeys[returnIndex],
-        this.serialize(value, keys[returnIndex]),
+        cacheKeys[returnIndex]!,
+        this.serialize(value, keys[returnIndex]!),
         ttlToMs(ttl, [value, index]),
       ];
     });

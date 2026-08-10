@@ -30,17 +30,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Format
-        run: pnpm format:check
+      - run: pnpm lint:readonly
 
-      - name: Lint
-        run: pnpm lint
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Test with coverage
-        run: pnpm test:coverage
+      - run: pnpm test:coverage
 
       - name: Report coverage on PR
         if: github.event_name == 'pull_request'
@@ -49,5 +41,4 @@ jobs:
           json-summary-path: coverage/coverage-summary.json
           json-final-path: coverage/coverage-final.json
 
-      - name: Build
-        run: pnpm build
+      - run: pnpm build

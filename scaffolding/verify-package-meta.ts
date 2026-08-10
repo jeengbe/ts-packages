@@ -22,7 +22,7 @@ async function verifyPackageJson(logger: Logger, packageDir: URL): Promise<Packa
       .map((issue) => `  - ${issue.path.join('.') || '(root)'}: ${issue.message}`)
       .join('\n');
 
-    throw new Error(`Invalid package.json (${packageJsonPath}):\n${issues}`);
+    throw new Error(`Invalid package.json (${packageJsonPath.href}):\n${issues}`);
   }
   const packageJson = result.data;
 

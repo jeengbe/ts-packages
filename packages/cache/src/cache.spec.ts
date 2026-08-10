@@ -1,7 +1,8 @@
-import type { CacheOptions } from './cache';
-import { Cache, CacheOperation } from './cache';
-import type { TtlCacheEngine } from '@/adapters';
-import { MemoryCacheAdapter } from '@/adapters';
+import type { TtlCacheEngine } from './adapters/index.js';
+import { MemoryCacheAdapter } from './adapters/index.js';
+import type { CacheOptions } from './cache.js';
+import { Cache, CacheOperation } from './cache.js';
+import { describe, beforeEach, it, expect, Mocked, vitest } from 'vitest';
 
 class MockTtlCacheEngine implements TtlCacheEngine<string, string> {
   private readonly values = new Map<string, [value: string, ttl: number]>();
@@ -48,14 +49,14 @@ class MockTtlCacheEngine implements TtlCacheEngine<string, string> {
 
 describe('Cache', () => {
   let adapter: MemoryCacheAdapter;
-  let mockOptions: jest.Mocked<CacheOptions<Record<string, string>>>;
+  let mockOptions: Mocked<CacheOptions<Record<string, string>>>;
   let cache: Cache<Record<string, string>>;
 
   beforeEach(() => {
     adapter = new MemoryCacheAdapter(new MockTtlCacheEngine());
     mockOptions = {
-      serialize: jest.fn((val) => JSON.stringify(val)),
-      deserialize: jest.fn((val) => JSON.parse(val)),
+      serialize: vitest.fn<(val: string) => string>((val) => val),
+      deserialize: vitest.fn<(val: string) => string>((val) => val),
     };
 
     cache = new Cache<Record<string, string>>(adapter, 'cache', mockOptions);
@@ -69,7 +70,7 @@ describe('Cache', () => {
     });
 
     it('emits a miss if there is nothing cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.get('foo');
@@ -86,7 +87,7 @@ describe('Cache', () => {
     });
 
     it('records a hit if there is something cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.set('foo', 'bar', 0);
@@ -134,7 +135,7 @@ describe('Cache', () => {
     });
 
     it('records a miss if there is nothing cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.set('b', 'bar', 0);
@@ -147,7 +148,7 @@ describe('Cache', () => {
     });
 
     it('records a hit if there is something cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.set('b', 'bar', 0);
@@ -170,7 +171,7 @@ describe('Cache', () => {
     });
 
     it('does nothing if nothing requested', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       const values = await cache.mget([]);
@@ -224,7 +225,7 @@ describe('Cache', () => {
     });
 
     it("calls the ttl producer if it's a function", async () => {
-      const producer = jest.fn().mockReturnValue(1000);
+      const producer = vitest.fn<() => number>().mockReturnValue(1000);
 
       await cache.set('foo', 'bar', producer);
 
@@ -280,7 +281,7 @@ describe('Cache', () => {
     });
 
     it('calls makeKey with value and index', async () => {
-      const makeKey = jest.fn().mockReturnValue('foo');
+      const makeKey = vitest.fn<() => string>().mockReturnValue('foo');
 
       await cache.mset(['foo', 'bar', 'baz', 'qux'], makeKey, 0);
 
@@ -311,7 +312,7 @@ describe('Cache', () => {
     });
 
     it('calls the ttl producer with the value and index', async () => {
-      const producer = jest.fn().mockReturnValue(1000);
+      const producer = vitest.fn<() => number>().mockReturnValue(1000);
 
       await cache.mset(['bar', 'baz'], (d) => `foo-${d}`, producer);
 
@@ -650,7 +651,7 @@ describe('Cache', () => {
   describe('cached', () => {
     it("doesn't run the producer if the value is cached", async () => {
       await cache.set('foo', 'bar', 0);
-      const producer = jest.fn().mockResolvedValue('baz');
+      const producer = vitest.fn<() => Promise<string>>().mockResolvedValue('baz');
 
       const value = await cache.cached('foo', producer, 0);
 
@@ -659,7 +660,7 @@ describe('Cache', () => {
     });
 
     it('records a hit if there is something cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.set('foo', 'bar', 0);
@@ -678,7 +679,7 @@ describe('Cache', () => {
     });
 
     it('runs the producer if nothing cached', async () => {
-      const producer = jest.fn().mockResolvedValue('bar');
+      const producer = vitest.fn<() => Promise<string>>().mockResolvedValue('bar');
 
       const value = await cache.cached('foo', producer, 0);
 
@@ -711,7 +712,7 @@ describe('Cache', () => {
     });
 
     it("calls the ttl producer if it's a function", async () => {
-      const producer = jest.fn().mockReturnValue(1000);
+      const producer = vitest.fn<() => number>().mockReturnValue(1000);
 
       await cache.cached('foo', async () => 'bar', producer);
 
@@ -735,7 +736,7 @@ describe('Cache', () => {
     });
 
     it('records a miss if there is nothing cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.cached('foo', async () => 'bar', 0);
@@ -772,7 +773,7 @@ describe('Cache', () => {
     it('runs the producer for those items that are not cached', async () => {
       await cache.set('foo-b', 'bar', 0);
       await cache.set('foo-d', 'qux', 0);
-      const producer = jest.fn().mockResolvedValue(['foo', 'baz']);
+      const producer = vitest.fn<() => Promise<string[]>>().mockResolvedValue(['foo', 'baz']);
 
       const value = await cache.mcached(['a', 'b', 'c', 'd'], (d) => `foo-${d}`, producer, 0);
 
@@ -781,7 +782,7 @@ describe('Cache', () => {
     });
 
     it('records a miss for those items that are not cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.set('foo-b', 'bar', 0);
@@ -799,7 +800,7 @@ describe('Cache', () => {
     });
 
     it('records a hit for those items that are cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.set('foo-b', 'bar', 0);
@@ -850,7 +851,7 @@ describe('Cache', () => {
       await cache.set('foo-a', 'bar', 0);
       await cache.set('foo-b', 'baz', 0);
       await cache.set('foo-c', 'qux', 0);
-      const producer = jest.fn();
+      const producer = vitest.fn<() => Promise<string[]>>();
 
       await cache.mcached(['a', 'b', 'c'], (d) => `foo-${d}`, producer, 0);
 
@@ -858,7 +859,7 @@ describe('Cache', () => {
     });
 
     it('records a hit if all items are cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.set('foo-a', 'bar', 0);
@@ -878,7 +879,7 @@ describe('Cache', () => {
     });
 
     it('records a miss if no items are cached', async () => {
-      const onRead = jest.fn();
+      const onRead = vitest.fn<() => void>();
       cache.on('read', onRead);
 
       await cache.mcached(
@@ -946,7 +947,7 @@ describe('Cache', () => {
     });
 
     it("calls the ttl producer if it's a function", async () => {
-      const producer = jest.fn().mockReturnValue(1000);
+      const producer = vitest.fn<() => number>().mockReturnValue(1000);
 
       await cache.mcached(
         ['a', 'b', 'c'],
@@ -1007,7 +1008,7 @@ describe('Cache', () => {
       await cache.set('foo-b', 'baz', 0);
       await cache.set('foo-c', 'qux', 0);
 
-      const makeKey = jest.fn((data: string) => `foo-${data}`);
+      const makeKey = vitest.fn<(data: string) => string>((data) => `foo-${data}`);
 
       await cache.mcached(['a', 'b', 'c'], makeKey, async () => [], 0);
 
@@ -1018,7 +1019,7 @@ describe('Cache', () => {
 
     it("throws an error if the producer doesn't return as many values as requested", async () => {
       {
-        const producer = jest.fn().mockResolvedValue(['foo', 'baz']);
+        const producer = vitest.fn<() => Promise<string[]>>().mockResolvedValue(['foo', 'baz']);
 
         const valuePromise = cache.mcached(['a'], (d) => `foo-${d}`, producer, 0);
 
@@ -1032,7 +1033,7 @@ describe('Cache', () => {
         expect(val).toBeUndefined();
       }
       {
-        const producer = jest.fn().mockResolvedValue([]);
+        const producer = vitest.fn<() => Promise<string[]>>().mockResolvedValue([]);
 
         const valuePromise = cache.mcached(['a'], (d) => `foo-${d}`, producer, 0);
 

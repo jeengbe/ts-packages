@@ -1,5 +1,6 @@
 // oxlint-disable-next-line no-unused-vars -- Used in JSDoc
 import { NoSvidError } from './error.js';
+
 import type { ParsedJwtSvid, SpiffeJwtClient } from './interface.js';
 import type { FileHandle } from 'node:fs/promises';
 import { open } from 'node:fs/promises';

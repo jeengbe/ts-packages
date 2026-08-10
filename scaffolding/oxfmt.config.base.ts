@@ -5,5 +5,7 @@ export const base = defineConfig({
   singleQuote: true,
   sortImports: {
     groups: [],
+    partitionByNewline: true,
+    newlinesBetween: false,
   },
 });

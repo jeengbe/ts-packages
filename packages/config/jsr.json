@@ -1,6 +1,6 @@
 {
   "$schema": "https://jsr.io/schema/config-file.v1.json",
-  "name": "@jeengbe/cache",
+  "name": "@jeengbe/config",
   "version": "0.0.0",
   "exports": {
     ".": "./src/index.ts"

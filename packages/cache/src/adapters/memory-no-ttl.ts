@@ -3,7 +3,7 @@ import micromatch from 'micromatch';
 
 export interface NoTtlCacheEngine<K, V> {
   get(key: K): V | undefined;
-  set(key: K, value: V): this;
+  set(key: K, value: V): void;
   delete(key: K): boolean;
   has(key: K): boolean;
   entries(): IterableIterator<[K, V]>;

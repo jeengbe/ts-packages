@@ -1,45 +1,14 @@
-import type { CacheAdapter } from './interface';
-import { RedisCacheAdapter } from './redis';
+import type { CacheAdapter } from './interface.js';
+import { RedisCacheAdapter } from './redis.js';
 import type { StartedRedisContainer } from '@testcontainers/redis';
 import { RedisContainer } from '@testcontainers/redis';
 import assert from 'assert';
 import type { ChainableCommander } from 'ioredis';
 import { Redis, ScanStream } from 'ioredis';
-
-class MockScanStream extends ScanStream {
-  constructor(private readonly batches: readonly (readonly string[])[]) {
-    super({
-      objectMode: true,
-      command: 'SCAN',
-      redis: {} as Redis,
-    });
-  }
-
-  _read(): void {
-    this.batches.forEach((batch) => {
-      this.push(batch);
-    });
-
-    this.push(null);
-  }
-}
-
-class MockErrorScanStream extends ScanStream {
-  constructor(private readonly error?: Error) {
-    super({
-      objectMode: true,
-      command: 'SCAN',
-      redis: {} as Redis,
-    });
-  }
-
-  _read() {
-    this.emit('error', this.error);
-  }
-}
+import { describe, vitest, beforeAll, beforeEach, afterEach, it, expect } from 'vitest';
 
 describe('RedisCacheAdapter', () => {
-  jest.setTimeout(60000);
+  vitest.setConfig({ testTimeout: 60000, hookTimeout: 60000 });
 
   let redisContainer: StartedRedisContainer;
   let redis: Redis;
@@ -49,21 +18,23 @@ describe('RedisCacheAdapter', () => {
     redisContainer = await new RedisContainer('redis:8.2').start();
 
     redis = new Redis(redisContainer.getConnectionUrl());
-  });
 
-  afterAll(async () => {
-    await redis.quit();
-    await redisContainer.stop();
+    return async () => {
+      await redis.quit();
+      await redisContainer.stop();
+    };
   });
 
   beforeEach(() => {
     adapter = new RedisCacheAdapter(redis);
+
+    return async () => {
+      await redis.flushall();
+    };
   });
 
-  afterEach(async () => {
-    jest.resetAllMocks();
-    jest.restoreAllMocks();
-    await redis.flushall();
+  afterEach(() => {
+    vitest.restoreAllMocks();
   });
 
   describe('mget', () => {
@@ -91,7 +62,7 @@ describe('RedisCacheAdapter', () => {
 
     describe('wraps Redis errors', () => {
       it('throws an error', async () => {
-        jest.spyOn(redis, 'mget').mockRejectedValue(new Error());
+        vitest.spyOn(redis, 'mget').mockRejectedValue(new Error());
 
         await expect(adapter.mget(['foo', 'baz'])).rejects.toThrow(
           'Failed to get keys from Redis.',
@@ -100,7 +71,7 @@ describe('RedisCacheAdapter', () => {
 
       it('includes the original error', async () => {
         const error = new Error();
-        jest.spyOn(redis, 'mget').mockRejectedValue(error);
+        vitest.spyOn(redis, 'mget').mockRejectedValue(error);
 
         try {
           await adapter.mget(['foo', 'baz']);
@@ -156,7 +127,7 @@ describe('RedisCacheAdapter', () => {
 
     describe('wraps Redis errors', () => {
       it('throws an error', async () => {
-        jest.spyOn(redis, 'mset').mockRejectedValue(new Error());
+        vitest.spyOn(redis, 'mset').mockRejectedValue(new Error());
 
         await expect(
           adapter.mset([
@@ -168,7 +139,7 @@ describe('RedisCacheAdapter', () => {
 
       it('includes the original error', async () => {
         const error = new Error();
-        jest.spyOn(redis, 'mset').mockRejectedValue(error);
+        vitest.spyOn(redis, 'mset').mockRejectedValue(error);
 
         try {
           await adapter.mset([
@@ -202,7 +173,7 @@ describe('RedisCacheAdapter', () => {
 
     describe('wraps Redis errors', () => {
       it('throws an error', async () => {
-        jest.spyOn(redis, 'del').mockRejectedValue(new Error());
+        vitest.spyOn(redis, 'del').mockRejectedValue(new Error());
 
         await expect(adapter.mdel(['foo', 'baz'])).rejects.toThrow(
           'Failed to delete keys from Redis.',
@@ -211,7 +182,7 @@ describe('RedisCacheAdapter', () => {
 
       it('includes the original error', async () => {
         const error = new Error();
-        jest.spyOn(redis, 'del').mockRejectedValue(error);
+        vitest.spyOn(redis, 'del').mockRejectedValue(error);
 
         try {
           await adapter.mdel(['foo', 'baz']);
@@ -242,7 +213,7 @@ describe('RedisCacheAdapter', () => {
 
     it("runs flushdb if the pattern is '*'", async () => {
       await redis.mset('foo-1', 'bar', 'foo-2', 'baz');
-      const flushdb = jest.spyOn(redis, 'flushdb');
+      const flushdb = vitest.spyOn(redis, 'flushdb');
 
       await adapter.pdel('*');
 
@@ -253,12 +224,12 @@ describe('RedisCacheAdapter', () => {
     });
 
     it("collects failed keys and errors if they can't be deleted", async () => {
-      jest
+      vitest
         .spyOn(redis, 'scanStream')
         .mockReturnValue(new MockScanStream([['foo-1', 'foo-2'], ['foo-3', 'foo-4'], ['foo-5']]));
       const error = new Error();
       const error2 = new Error();
-      jest
+      vitest
         .spyOn(redis, 'del')
         .mockResolvedValueOnce(2)
         .mockRejectedValueOnce(error)
@@ -274,7 +245,7 @@ describe('RedisCacheAdapter', () => {
           'Failed to delete keys from Redis. Some keys might have been deleted.',
         );
         expect(err.errors).toEqual([error, error2]);
-        expect((err.cause as Record<string, unknown>).failedKeys).toEqual([
+        expect((err.cause as Record<string, unknown>)['failedKeys']).toEqual([
           'foo-3',
           'foo-4',
           'foo-5',
@@ -286,14 +257,14 @@ describe('RedisCacheAdapter', () => {
       describe('flushdb', () => {
         describe('wraps Redis errors', () => {
           it('throws an error', async () => {
-            jest.spyOn(redis, 'flushdb').mockRejectedValue(new Error());
+            vitest.spyOn(redis, 'flushdb').mockRejectedValue(new Error());
 
             await expect(adapter.pdel('*')).rejects.toThrow('Failed to clear Redis.');
           });
 
           it('includes the original error', async () => {
             const error = new Error();
-            jest.spyOn(redis, 'flushdb').mockRejectedValue(error);
+            vitest.spyOn(redis, 'flushdb').mockRejectedValue(error);
 
             try {
               await adapter.pdel('*');
@@ -309,7 +280,7 @@ describe('RedisCacheAdapter', () => {
 
       describe('other', () => {
         it('throws an error', async () => {
-          jest.spyOn(redis, 'scanStream').mockReturnValue(new MockErrorScanStream());
+          vitest.spyOn(redis, 'scanStream').mockReturnValue(new MockErrorScanStream());
 
           await expect(adapter.pdel('foo-*')).rejects.toThrow(
             'Failed to delete keys from Redis. Some keys might have been deleted.',
@@ -318,7 +289,7 @@ describe('RedisCacheAdapter', () => {
 
         it('includes the original error', async () => {
           const error = new Error();
-          jest.spyOn(redis, 'scanStream').mockReturnValue(new MockErrorScanStream(error));
+          vitest.spyOn(redis, 'scanStream').mockReturnValue(new MockErrorScanStream(error));
 
           try {
             await adapter.pdel('foo-*');
@@ -350,7 +321,7 @@ describe('RedisCacheAdapter', () => {
 
     describe('wraps Redis errors', () => {
       it('throws an error', async () => {
-        jest.spyOn(redis, 'pipeline').mockReturnValue({
+        vitest.spyOn(redis, 'pipeline').mockReturnValue({
           exists() {
             return this;
           },
@@ -366,7 +337,7 @@ describe('RedisCacheAdapter', () => {
 
       it('includes the original error', async () => {
         const error = new Error();
-        jest.spyOn(redis, 'exists').mockRejectedValue(error);
+        vitest.spyOn(redis, 'exists').mockRejectedValue(error);
 
         try {
           await adapter.mhas(['foo', 'baz']);
@@ -405,7 +376,7 @@ describe('RedisCacheAdapter', () => {
 
     describe('wraps Redis errors', () => {
       it('throws an error', async () => {
-        jest.spyOn(redis, 'pttl').mockRejectedValue(new Error());
+        vitest.spyOn(redis, 'pttl').mockRejectedValue(new Error());
 
         await expect(adapter.getRemainingTtl('foo')).rejects.toThrow(
           'Failed to get remaining TTL from Redis.',
@@ -414,7 +385,7 @@ describe('RedisCacheAdapter', () => {
 
       it('includes the original error', async () => {
         const error = new Error();
-        jest.spyOn(redis, 'pttl').mockRejectedValue(error);
+        vitest.spyOn(redis, 'pttl').mockRejectedValue(error);
 
         try {
           await adapter.getRemainingTtl('foo');
@@ -428,3 +399,35 @@ describe('RedisCacheAdapter', () => {
     });
   });
 });
+
+class MockScanStream extends ScanStream {
+  constructor(private readonly batches: readonly (readonly string[])[]) {
+    super({
+      objectMode: true,
+      command: 'SCAN',
+      redis: {} as Redis,
+    });
+  }
+
+  override _read(): void {
+    this.batches.forEach((batch) => {
+      this.push(batch);
+    });
+
+    this.push(null);
+  }
+}
+
+class MockErrorScanStream extends ScanStream {
+  constructor(private readonly error?: Error) {
+    super({
+      objectMode: true,
+      command: 'SCAN',
+      redis: {} as Redis,
+    });
+  }
+
+  override _read() {
+    this.emit('error', this.error);
+  }
+}

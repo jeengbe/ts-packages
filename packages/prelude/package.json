@@ -21,8 +21,7 @@
   "scripts": {
     "build": "tsdown",
     "lint": "oxlint --fix . && oxfmt --write .",
-    "test": "vitest",
-    "typecheck": "tsc"
+    "test": "vitest"
   },
   "devDependencies": {
     "@jeengbe/scaffolding": "workspace:*",

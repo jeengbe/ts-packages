@@ -1,11 +1,12 @@
-import { NoSvidError } from './error';
-import { SpiffeClient } from './impl';
-import { SpiffeWorkloadAPI } from './proto/workloadapi_pb';
+import { NoSvidError } from './error.js';
+import { SpiffeClient } from './impl.js';
+import { SpiffeWorkloadAPI } from './proto/workloadapi_pb.js';
 import type { ConnectRouter, ServiceImpl } from '@connectrpc/connect';
 import { Code, ConnectError } from '@connectrpc/connect';
 import { connectNodeAdapter } from '@connectrpc/connect-node';
 import * as fs from 'fs/promises';
 import * as http2 from 'node:http2';
+import { describe, beforeEach, afterEach, it, Mock, beforeAll, expect, vitest } from 'vitest';
 
 type FetchJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchJWTSVID'];
 type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVID'];
@@ -13,16 +14,15 @@ type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVI
 describe('SpiffeClientImpl', () => {
   let socketPath: string;
   let socketUri: string;
-  let server: http2.Http2Server;
-  let fetchJWTSVID: jest.Mock<FetchJWTSVIDImpl>;
-  let validateJWTSVID: jest.Mock<ValidateJWTSVIDImpl>;
+  let fetchJWTSVID: Mock<FetchJWTSVIDImpl>;
+  let validateJWTSVID: Mock<ValidateJWTSVIDImpl>;
   let client: SpiffeClient;
 
   beforeAll(async () => {
     socketPath = `${await fs.mkdtemp('/tmp/spiffe-client-test-')}/socket.sock`;
     socketUri = `unix://${socketPath}`;
 
-    server = http2.createServer(
+    const server = http2.createServer(
       connectNodeAdapter({
         routes: (router: ConnectRouter) => {
           router.service(SpiffeWorkloadAPI, {
@@ -42,25 +42,25 @@ describe('SpiffeClientImpl', () => {
         }
       });
     });
-  });
 
-  afterAll(async () => {
-    await new Promise<void>((resolve, reject) => {
-      server.close((err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+    return async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
       });
-    });
+    };
   });
 
   beforeEach(() => {
-    fetchJWTSVID = jest.fn<FetchJWTSVIDImpl>(() => {
+    fetchJWTSVID = vitest.fn<FetchJWTSVIDImpl>(() => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
-    validateJWTSVID = jest.fn<ValidateJWTSVIDImpl>(() => {
+    validateJWTSVID = vitest.fn<ValidateJWTSVIDImpl>(() => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
 

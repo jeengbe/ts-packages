@@ -14,8 +14,7 @@
   "type": "module",
   "types": "types.d.ts",
   "scripts": {
-    "lint": "oxlint --fix . && oxfmt --write .",
-    "typecheck": "tsc"
+    "lint": "oxlint --fix . && oxfmt --write ."
   },
   "dependencies": {
     "@total-typescript/ts-reset": "^0.6.1",

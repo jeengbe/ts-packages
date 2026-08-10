@@ -4,35 +4,34 @@ import { DiskCacheBackupSaver, MemoryCacheAdapter } from './memory.js';
 import assert from 'assert';
 import * as fs from 'fs';
 import * as path from 'path';
-
-const mockCacheEngine: jest.Mocked<TtlCacheEngine<string, string>> = {
-  get: jest.fn(),
-  set: jest.fn(),
-  delete: jest.fn(),
-  has: jest.fn(),
-  entries: jest.fn(),
-  keys: jest.fn(),
-  clear: jest.fn(),
-  getRemainingTTL: jest.fn(),
-};
-
-const mockDiskSaver: jest.Mocked<CacheBackupSaver> = {
-  loadCacheBackup: jest.fn().mockReturnValue({}),
-  saveCacheBackup: jest.fn(),
-};
+import { beforeEach, describe, expect, it, Mocked, test, vitest } from 'vitest';
 
 describe('MemoryCacheAdapter', () => {
   let adapter: CacheAdapter;
+  let mockCacheEngine: Mocked<TtlCacheEngine<string, string>>;
+  let mockDiskSaver: Mocked<CacheBackupSaver>;
 
   beforeEach(() => {
+    mockCacheEngine = {
+      get: vitest.fn<TtlCacheEngine<string, string>['get']>(),
+      set: vitest.fn<TtlCacheEngine<string, string>['set']>(),
+      delete: vitest.fn<TtlCacheEngine<string, string>['delete']>(),
+      has: vitest.fn<TtlCacheEngine<string, string>['has']>(),
+      entries: vitest.fn<TtlCacheEngine<string, string>['entries']>(),
+      keys: vitest.fn<TtlCacheEngine<string, string>['keys']>(),
+      clear: vitest.fn<TtlCacheEngine<string, string>['clear']>(),
+      getRemainingTTL: vitest.fn<TtlCacheEngine<string, string>['getRemainingTTL']>(),
+    };
+
+    mockDiskSaver = {
+      loadCacheBackup: vitest.fn<CacheBackupSaver['loadCacheBackup']>().mockReturnValue({}),
+      saveCacheBackup: vitest.fn<CacheBackupSaver['saveCacheBackup']>(),
+    };
+
     mockCacheEngine.entries.mockReturnValue([][Symbol.iterator]());
     mockDiskSaver.loadCacheBackup.mockReturnValue({});
 
     adapter = new MemoryCacheAdapter(mockCacheEngine, mockDiskSaver);
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
   });
 
   test('mget', async () => {
@@ -135,7 +134,7 @@ describe('MemoryCacheAdapter', () => {
       foo: { value: 'bar', expireAtMs: 2000 },
     });
 
-    jest.useFakeTimers().setSystemTime(1000);
+    vitest.useFakeTimers().setSystemTime(1000);
 
     // Need to run the constructor again because that's when the backup is loaded
     new MemoryCacheAdapter(mockCacheEngine, mockDiskSaver);
@@ -144,7 +143,7 @@ describe('MemoryCacheAdapter', () => {
       ttl: 1000,
     });
 
-    jest.useRealTimers();
+    vitest.useRealTimers();
   });
 
   it('ignores values that expired in the past', () => {
@@ -152,14 +151,14 @@ describe('MemoryCacheAdapter', () => {
       foo: { value: 'bar', expireAtMs: 500 },
     });
 
-    jest.useFakeTimers().setSystemTime(1000);
+    vitest.useFakeTimers().setSystemTime(1000);
 
     // Need to run the constructor again because that's when the backup is loaded
     new MemoryCacheAdapter(mockCacheEngine, mockDiskSaver);
 
     expect(mockCacheEngine.set).not.toHaveBeenCalled();
 
-    jest.useRealTimers();
+    vitest.useRealTimers();
   });
 
   it('exports the cache correctly', async () => {
@@ -189,7 +188,7 @@ describe('MemoryCacheAdapter', () => {
       [['foo', 'bar'] as [string, string]][Symbol.iterator](),
     );
 
-    jest.useFakeTimers().setSystemTime(1000);
+    vitest.useFakeTimers().setSystemTime(1000);
 
     mockCacheEngine.getRemainingTTL.mockReturnValue(1000);
 
@@ -203,7 +202,7 @@ describe('MemoryCacheAdapter', () => {
       },
     });
 
-    jest.useRealTimers();
+    vitest.useRealTimers();
   });
 
   it('handles no backup saver being provided', async () => {
@@ -222,10 +221,6 @@ describe('DiskCacheBackupSaver', () => {
   beforeEach(() => {
     tempFile = `${fs.mkdtempSync('/tmp/mock-cache-backup')}/mock-backup`;
     saver = new DiskCacheBackupSaver(tempFile);
-  });
-
-  afterEach(() => {
-    jest.resetAllMocks();
   });
 
   it("creates the backup directory if it doesn't exist", () => {
@@ -261,7 +256,7 @@ describe('DiskCacheBackupSaver', () => {
   it("doesn't save the cache backup if it's already saving", async () => {
     let resolveSaveA: () => void;
 
-    const writeSpy = jest.spyOn(fs.promises, 'writeFile');
+    const writeSpy = vitest.spyOn(fs.promises, 'writeFile');
 
     // Capture the resolve function for save A
     writeSpy.mockImplementationOnce((file, data) => {
@@ -290,5 +285,7 @@ describe('DiskCacheBackupSaver', () => {
 
     // Save B should have been ignored
     expect(fs.readFileSync(tempFile, 'utf8')).toEqual('{"foo":{"value":"bar","expireAtMs":1000}}');
+
+    vitest.restoreAllMocks();
   });
 });

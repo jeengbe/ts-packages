@@ -1,27 +1,24 @@
 import type { CacheAdapter } from './interface.js';
 import type { NoTtlCacheEngine } from './memory-no-ttl.js';
 import { NoTtlMemoryCacheAdapter } from './memory-no-ttl.js';
-import { afterEach, beforeEach, describe, expect, it, test, vitest, type Mocked } from 'vitest';
-
-const mockCacheEngine: Mocked<NoTtlCacheEngine<string, string>> = {
-  get: vitest.fn(),
-  set: vitest.fn(),
-  delete: vitest.fn(),
-  has: vitest.fn(),
-  entries: vitest.fn(),
-  keys: vitest.fn(),
-  clear: vitest.fn(),
-};
+import { beforeEach, describe, expect, it, Mocked, test, vitest } from 'vitest';
 
 describe('NoTtlMemoryCacheAdapter', () => {
   let adapter: CacheAdapter;
+  let mockCacheEngine: Mocked<NoTtlCacheEngine<string, string>>;
 
   beforeEach(() => {
-    adapter = new NoTtlMemoryCacheAdapter(mockCacheEngine);
-  });
+    mockCacheEngine = {
+      get: vitest.fn<NoTtlCacheEngine<string, string>['get']>(),
+      set: vitest.fn<NoTtlCacheEngine<string, string>['set']>(),
+      delete: vitest.fn<NoTtlCacheEngine<string, string>['delete']>(),
+      has: vitest.fn<NoTtlCacheEngine<string, string>['has']>(),
+      entries: vitest.fn<NoTtlCacheEngine<string, string>['entries']>(),
+      keys: vitest.fn<NoTtlCacheEngine<string, string>['keys']>(),
+      clear: vitest.fn<NoTtlCacheEngine<string, string>['clear']>(),
+    };
 
-  afterEach(() => {
-    vitest.resetAllMocks();
+    adapter = new NoTtlMemoryCacheAdapter(mockCacheEngine);
   });
 
   it('uses a Map as the cache engine by default', async () => {

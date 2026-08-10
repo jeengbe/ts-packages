@@ -5,7 +5,7 @@ import * as path from 'path';
 
 export interface TtlCacheEngine<K, V> {
   get(key: K): V | undefined;
-  set(key: K, value: V, options: { ttl: number }): this;
+  set(key: K, value: V, options: { ttl: number }): void;
   delete(key: K): boolean;
   has(key: K): boolean;
   entries(): IterableIterator<[K, V]>;

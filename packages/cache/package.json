@@ -1,6 +1,6 @@
 {
   "name": "@jeengbe/cache",
-  "version": "7.1.0",
+  "version": "7.0.0",
   "description": "A strongly typed caching framework that works with any engine.",
   "keywords": [
     "cache",
@@ -34,8 +34,7 @@
   "scripts": {
     "build": "tsdown",
     "lint": "oxlint --fix . && oxfmt --write .",
-    "test": "vitest",
-    "typecheck": "tsc"
+    "test": "vitest"
   },
   "dependencies": {
     "ms": "^2.1.3"
