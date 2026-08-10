@@ -1,5 +1,11 @@
 # @jeengbe/spiffe
 
+## 0.6.3
+
+### Patch Changes
+
+- [`48857dc`](https://github.com/jeengbe/ts-packages/commit/48857dce6a25d1e999aa5fb7c5608d833b8ccfde) - fix: release again
+
 ## 0.6.2
 
 ### Patch Changes
