@@ -1,5 +1,14 @@
 # @jeengbe/config
 
+## 0.0.5
+
+### Patch Changes
+
+- [`1922757`](https://github.com/jeengbe/ts-packages/commit/19227578bad1fbb47e70ccf5cc40d3c2065b99f3) - fix: dont publish test files
+
+- Updated dependencies [[`1922757`](https://github.com/jeengbe/ts-packages/commit/19227578bad1fbb47e70ccf5cc40d3c2065b99f3)]:
+  - @jeengbe/prelude@0.0.5
+
 ## 0.0.4
 
 ### Patch Changes
