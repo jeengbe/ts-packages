@@ -1,5 +1,11 @@
 # @jeengbe/spiffe
 
+## 0.6.6
+
+### Patch Changes
+
+- [`5f4dc8d`](https://github.com/jeengbe/ts-packages/commit/5f4dc8d57e3579ac8e8e750b1aca29dbac19c0f2) - fix: add more jsdocs
+
 ## 0.6.5
 
 ### Patch Changes
