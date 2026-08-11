@@ -4,12 +4,39 @@ import type { ValidationResult } from './validation.js';
 import { arrayIncludes, combineValidationResults } from './validation.js';
 import { Either } from '@jeengbe/prelude';
 
-export const env = {
-  string(key: string, defaultValue?: string): ScalarEnvNode<string> {
+export interface Env {
+  string(key: string, defaultValue?: string): ScalarEnvNode<string>;
+  number(key: string, defaultValue?: number): ScalarEnvNode<number>;
+  boolean(key: string, defaultValue?: boolean): ScalarEnvNode<boolean>;
+  enum<const T extends string>(
+    key: string,
+    values: readonly T[],
+    defaultValue?: T,
+  ): ScalarEnvNode<T>;
+  custom<T>(
+    key: string,
+    transform: (value: string) => ValidationResult<T>,
+    defaultValue?: T,
+  ): ScalarEnvNode<T>;
+  array<T>(itemType: ScalarEnvNode<T>, defaultValue?: readonly T[]): EnvNode<readonly T[]>;
+  discriminate<
+    K extends string,
+    V extends string,
+    M extends Partial<Record<V, Record<string, EnvSpec>>>,
+  >(
+    discriminatorKey: K,
+    discriminatorValueType: ScalarEnvNode<V>,
+    mapping: M,
+  ): EnvNode<DiscriminatorResult<K, V, M>>;
+  load<S extends EnvSpec>(spec: S): Pretty<InferEnvSpec<S>>;
+}
+
+export const env: Env = {
+  string(key, defaultValue) {
     return env.custom(key, (value) => Either.right(value), defaultValue);
   },
 
-  number(key: string, defaultValue?: number): ScalarEnvNode<number> {
+  number(key, defaultValue) {
     return env.custom(
       key,
       (value) => {
@@ -23,7 +50,7 @@ export const env = {
     );
   },
 
-  boolean(key: string, defaultValue?: boolean): ScalarEnvNode<boolean> {
+  boolean(key, defaultValue) {
     return env.custom(
       key,
       (value) => {
@@ -36,11 +63,7 @@ export const env = {
     );
   },
 
-  enum<const T extends string>(
-    key: string,
-    values: readonly T[],
-    defaultValue?: T,
-  ): ScalarEnvNode<T> {
+  enum(key, values, defaultValue) {
     return env.custom(
       key,
       (value) => {
@@ -54,11 +77,7 @@ export const env = {
     );
   },
 
-  custom<T>(
-    key: string,
-    transform: (value: string) => ValidationResult<T>,
-    defaultValue?: T,
-  ): ScalarEnvNode<T> {
+  custom(key, transform, defaultValue) {
     return new ScalarEnvNode(key, (value) => {
       if (value === undefined) {
         if (defaultValue !== undefined) return Either.right(defaultValue);
@@ -115,7 +134,7 @@ export const env = {
     });
   },
 
-  load<S extends EnvSpec>(spec: S): Pretty<InferEnvSpec<S>> {
+  load(spec) {
     return resolveNode('$', spec, (key) => process.env[key]?.trim() || undefined).getOrElse(
       (errors) => {
         throw new Error(`Failed to load config: ${errors.join(', ')}`);
