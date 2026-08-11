@@ -1,5 +1,13 @@
 # @jeengbe/cache
 
+## 7.0.4
+
+### Patch Changes
+
+- [`ab1c698`](https://github.com/jeengbe/ts-packages/commit/ab1c69869acb9ee2e355a466797c961c3439ae0d) - fix: deploy JSR properly
+
+- [`3ec9131`](https://github.com/jeengbe/ts-packages/commit/3ec91317dfe8f5f80a7a7a35f7fb44ad02486696) - fix: release
+
 ## 7.0.3
 
 ### Patch Changes
