@@ -1,3 +1,6 @@
+/**
+ * Thrown when no SVID is found for a given type (JWT or X509).
+ */
 export class NoSvidError extends Error {
   constructor(
     type: 'JWT' | 'X509',

@@ -5,6 +5,9 @@ import type { ParsedJwtSvid, SpiffeJwtClient } from './interface.js';
 import type { FileHandle } from 'node:fs/promises';
 import { open } from 'node:fs/promises';
 
+/**
+ * A helper class for working with SPIFFE JWT-SVIDs. Provides convenience methods for ensuring that a JWT-SVID is available on disk and automatically refreshed.
+ */
 export class SpiffeHelper implements AsyncDisposable {
   private readonly handles = new Set<JwtSvidDiskHandle>();
 
@@ -67,6 +70,9 @@ export class SpiffeHelper implements AsyncDisposable {
   }
 }
 
+/**
+ * A link for a JWT-SVID on disk. The file is automatically updated once the JWT comes close to expiration.
+ */
 export class JwtSvidDiskHandle implements AsyncDisposable {
   private timer?: NodeJS.Timeout;
 

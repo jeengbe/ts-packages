@@ -3,6 +3,9 @@ import * as fs from 'fs';
 import micromatch from 'micromatch';
 import * as path from 'path';
 
+/**
+ * A cache engine that respects TTL. It is used by the MemoryCacheAdapter. Compatible with lru-cache.
+ */
 export interface TtlCacheEngine<K, V> {
   get(key: K): V | undefined;
   set(key: K, value: V, options: { ttl: number }): void;

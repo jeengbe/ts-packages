@@ -1,3 +1,6 @@
+/**
+ * Options for the {@link safeJsonSerialize} function.
+ */
 export interface SafeJsonOptions {
   /**
    * Specifies whether `undefined` values are allowed for object properties during serialization.

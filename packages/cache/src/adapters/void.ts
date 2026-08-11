@@ -1,5 +1,8 @@
 import type { CacheAdapter } from './interface.js';
 
+/**
+ * Dummy cache adapter that does not store any data. All operations are no-ops and all reads return no data.
+ */
 export class VoidCacheAdapter implements CacheAdapter {
   async mget(keys: readonly string[]): Promise<(string | undefined)[]> {
     return Array.from<undefined>({ length: keys.length }).fill(undefined);

@@ -1,3 +1,7 @@
+/**
+ * A cache adapter provides access to a concrete cache store. It provides primitive operations that the
+ * Cache class implements higher-level operations on top of.
+ */
 export interface CacheAdapter {
   /**
    * Gets the values of all given keys. If a key does not exist, the corresponding

@@ -1,6 +1,9 @@
 // oxlint-disable-next-line no-unused-vars -- Used in JSDoc
 import { NoSvidError } from './error.js';
 
+/**
+ * Provides high-level APIs for working with JWT-SVIDs with the SPIFFE Workload API.
+ */
 export interface SpiffeJwtClient {
   /**
    * Fetches a JWT-SVID for the specified audience and returns the JWT string.
@@ -35,15 +38,24 @@ export interface SpiffeJwtClient {
   validateJwt(expectedAudience: string, token: string): Promise<ValidatedJwtSvid | null>;
 }
 
+/**
+ * A JWT-SVID.
+ */
 export interface JwtSvid {
   spiffeId: string;
   token: string;
 }
 
+/**
+ * A JWT-SVID that including the expiration time in milliseconds since the epoch.
+ */
 export interface ParsedJwtSvid extends JwtSvid {
   expiresAtMs: number;
 }
 
+/**
+ * Options for configuring retry behavior when fetching SVIDs.
+ */
 export interface SpiffeClientRetryOptions {
   /**
    * Maximum number of fetch attempts, including the first.
@@ -68,6 +80,9 @@ export interface SpiffeClientRetryOptions {
   maxDelayMs?: number;
 }
 
+/**
+ * A validated JWT-SVID, including the SPIFFE ID and claims of the decoded JWT.
+ */
 export interface ValidatedJwtSvid {
   spiffeId: string;
 

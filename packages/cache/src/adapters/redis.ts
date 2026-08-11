@@ -1,6 +1,9 @@
 import type { CacheAdapter } from './interface.js';
 import type { Redis } from 'ioredis';
 
+/**
+ * Provides access to a Redis cache store.
+ */
 export class RedisCacheAdapter implements CacheAdapter {
   constructor(private readonly client: Redis) {}
 

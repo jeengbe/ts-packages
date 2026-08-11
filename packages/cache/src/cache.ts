@@ -4,6 +4,9 @@ import { ttlToMs } from './ttl.js';
 import assert from 'assert';
 import EventEmitter from 'events';
 
+/**
+ * Options for the {@link Cache} class.
+ */
 export interface CacheOptions<Entries extends Record<string, unknown> = Record<string, unknown>> {
   /**
    * A function to serialize the values before storing them in the cache.
@@ -28,6 +31,9 @@ type Deserialize<Entries extends Record<string, unknown>> = (
   key: keyof Entries & string,
 ) => Entries[keyof Entries & string];
 
+/**
+ * Events emitted by the {@link Cache} class.
+ */
 export interface CacheEvents<Entries extends Record<string, unknown>> {
   /**
    * Fired after every cache read operation. For mget and mcached operations, the event is fired once for each key.
@@ -39,6 +45,9 @@ export interface CacheEvents<Entries extends Record<string, unknown>> {
   read: [key: keyof Entries, hit: boolean, operation: CacheOperation];
 }
 
+/**
+ * Operations that can be performed on the cache.
+ */
 export enum CacheOperation {
   Get,
   Mget,

@@ -1,6 +1,10 @@
 import type { CacheAdapter } from './interface.js';
 import micromatch from 'micromatch';
 
+/**
+ * A cache engine that does not respect TTL. It is used by the NoTtlMemoryCacheAdapter. Compatible
+ * with {@link Map}.
+ */
 export interface NoTtlCacheEngine<K, V> {
   get(key: K): V | undefined;
   set(key: K, value: V): void;

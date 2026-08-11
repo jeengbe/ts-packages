@@ -20,6 +20,9 @@ const workloadApiHeaderInterceptor: Interceptor = (next) => (req) => {
   return next(req);
 };
 
+/**
+ * The SPIFFE Client provides convenience APIs for interacting with the SPIFFE Workload API.
+ */
 export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   private readonly jwtSvidCache = new TTLCache<string, ParsedJwtSvid>();
   private readonly jwtSvidsInFlight = new Map<string, Promise<readonly JwtSvid[]>>();
