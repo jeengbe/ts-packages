@@ -245,7 +245,7 @@ export namespace Either {
     return isDefined(value) ? Either.right(value) : Either.left(leftValue());
   }
 
-  export function cond<L, R>(bool: boolean, rightFn: () => R, leftFn: () => L): Either<L, R> {
+  export function cond<L, R>(bool: boolean, leftFn: () => L, rightFn: () => R): Either<L, R> {
     return bool ? Either.right(rightFn()) : Either.left(leftFn());
   }
 }

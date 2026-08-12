@@ -6,7 +6,7 @@ import { Either } from '@jeengbe/prelude';
 type IfEnabled<T> =
   | ({
       enabled: true;
-    } & T)
+    } & Omit<T, 'enabled'>)
   | { enabled: false };
 
 export function ifEnabled<T extends Record<string, EnvSpec>>(
