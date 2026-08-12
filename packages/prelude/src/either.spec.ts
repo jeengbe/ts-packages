@@ -468,8 +468,8 @@ describe('Either', () => {
     it('should run the right function result if the value is true', () => {
       const either = Either.cond(
         true,
-        () => `rightResult`,
         () => 'leftResult',
+        () => `rightResult`,
       );
 
       expect(either.isRight()).toBe(true);
@@ -479,8 +479,8 @@ describe('Either', () => {
     it('should return the left function result if the value is false', () => {
       const either = Either.cond(
         false,
-        () => 'rightResult',
         () => 'leftResult',
+        () => 'rightResult',
       );
 
       expect(either.isLeft()).toBe(true);
@@ -969,8 +969,8 @@ describe('EitherP', () => {
     it('should run the right function result if the value is true', async () => {
       const either = await EitherP.cond(
         Promise.resolve(true),
-        async () => 'rightResult',
         async () => 'leftResult',
+        async () => 'rightResult',
       );
 
       expect(either.isRight()).toBe(true);
@@ -980,8 +980,8 @@ describe('EitherP', () => {
     it('should return the left function result if the value is false', async () => {
       const either = await EitherP.cond(
         Promise.resolve(false),
-        async () => 'rightResult',
         async () => 'leftResult',
+        async () => 'rightResult',
       );
 
       expect(either.isLeft()).toBe(true);

@@ -462,8 +462,8 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
 
   static cond<L, R>(
     bool: Promise<boolean>,
-    rightFn: () => Promise<R>,
     leftFn: () => Promise<L>,
+    rightFn: () => Promise<R>,
   ): EitherP<L, R> {
     return new EitherP(
       bool.then(async (b) => (b ? Either.right(await rightFn()) : Either.left(await leftFn()))),
