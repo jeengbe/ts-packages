@@ -1,5 +1,11 @@
 # @jeengbe/cache
 
+## 7.0.8
+
+### Patch Changes
+
+- [`e65c3ea`](https://github.com/jeengbe/ts-packages/commit/e65c3ea6f273ac750fa203f4fb62ed54a12c0e2d) - fix: require built-in with node: protocol
+
 ## 7.0.7
 
 ### Patch Changes
