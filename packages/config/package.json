@@ -1,6 +1,6 @@
 {
   "name": "@jeengbe/config",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A declarative, strongly typed schema for parsing and validating environment variables in TypeScript.",
   "keywords": [
     "config",

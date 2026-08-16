@@ -1,5 +1,19 @@
 # @jeengbe/spiffe
 
+## 1.0.0
+
+### Major Changes
+
+- [`b120b0f`](https://github.com/jeengbe/ts-packages/commit/b120b0fa4b5502abaee8ee697b41e90a7e9fc0fb) - fix!: clean up some things (release 1.0)
+
+### Minor Changes
+
+- [`dc30f2e`](https://github.com/jeengbe/ts-packages/commit/dc30f2e54a106221946d5c21faf714723b0b33f3) - refactor!: remove single interface
+
+### Patch Changes
+
+- [`30bd19f`](https://github.com/jeengbe/ts-packages/commit/30bd19f127a06c0120c512969dc0d8d1d36c3453) - fix: more package metadata
+
 ## 0.6.6
 
 ### Patch Changes
