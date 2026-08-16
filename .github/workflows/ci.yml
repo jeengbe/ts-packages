@@ -40,7 +40,6 @@ jobs:
         with:
           use_oidc: true
           files: ./coverage/coverage-final.json
-          flags: cache,config,prelude,spiffe
           fail_ci_if_error: true
 
   release:

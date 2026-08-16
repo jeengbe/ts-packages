@@ -6,7 +6,7 @@ A strongly typed caching framework that works with any engine. In-memory and Red
 [![License](https://img.shields.io/npm/l/@jeengbe/cache)](https://github.com/jeengbe/ts-packages/blob/master/packages/cache/LICENSE)
 [![Version](https://img.shields.io/npm/v/@jeengbe/cache)](https://www.npmjs.com/package/@jeengbe/cache)
 [![JSR](https://jsr.io/badges/@jeengbe/cache)](https://jsr.io/@jeengbe/cache)
-[![Coverage](https://codecov.io/gh/jeengbe/ts-packages/branch/master/graph/badge.svg?flag=cache)](https://app.codecov.io/gh/jeengbe/ts-packages/tree/master/packages/cache)
+[![Coverage](https://codecov.io/gh/jeengbe/ts-packages/branch/master/graph/badge.svg?component=cache)](https://app.codecov.io/gh/jeengbe/ts-packages/tree/master/packages/cache)
 
 </div>
 

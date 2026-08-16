@@ -46,7 +46,7 @@ async function getPackages(): Promise<readonly PackageInfo[]> {
 function renderTable(packages: readonly PackageInfo[]): string {
   const rows = packages.map((pkg) => {
     const description = pkg.description.replaceAll('|', '\\|');
-    const coverage = `[![Coverage](https://codecov.io/gh/${REPO}/branch/master/graph/badge.svg?flag=${pkg.dir})](https://app.codecov.io/gh/${REPO}/tree/master/packages/${pkg.dir})`;
+    const coverage = `[![Coverage](https://codecov.io/gh/${REPO}/branch/master/graph/badge.svg?component=${pkg.dir})](https://app.codecov.io/gh/${REPO}/tree/master/packages/${pkg.dir})`;
 
     return `| [\`${pkg.name}\`](packages/${pkg.dir}) | [![npm](https://img.shields.io/npm/v/${pkg.name})](https://www.npmjs.com/package/${pkg.name}) [![JSR](https://jsr.io/badges/${pkg.name})](https://jsr.io/${pkg.name}) | ${coverage} | ${description} |`;
   });

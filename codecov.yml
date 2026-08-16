@@ -7,24 +7,6 @@ coverage:
     patch:
       default:
         target: auto
-
-flag_management:
-  default_rules:
-    carryforward: true
-  individual_flags:
-    - name: cache
-      paths:
-        - packages/cache/src
-    - name: config
-      paths:
-        - packages/config/src
-    - name: prelude
-      paths:
-        - packages/prelude/src
-    - name: spiffe
-      paths:
-        - packages/spiffe/src
-
 component_management:
   default_rules:
     statuses:
@@ -34,20 +16,19 @@ component_management:
     - component_id: cache
       name: cache
       paths:
-        - packages/cache/src
+        - packages/cache
     - component_id: config
       name: config
       paths:
-        - packages/config/src
+        - packages/config
     - component_id: prelude
       name: prelude
       paths:
-        - packages/prelude/src
+        - packages/prelude
     - component_id: spiffe
       name: spiffe
       paths:
-        - packages/spiffe/src
-
+        - packages/spiffe
 comment:
-  layout: 'condensed_header, flags, components, condensed_files, condensed_footer'
+  layout: condensed_header, components, condensed_files, condensed_footer
   require_changes: false
