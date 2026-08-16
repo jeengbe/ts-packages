@@ -51,19 +51,6 @@ export class ValidationResult<T> {
   }
 
   /**
-   * Returns a new ValidationResult with the given defaulted key appended to the log. Performs no
-   * operation if this is a failure.
-   */
-  tell(newDefaulted: ValidationDefaulted): ValidationResult<T> {
-    return new ValidationResult(
-      this.result.map(({ defaulted, value }) => ({
-        defaulted: [...defaulted, newDefaulted],
-        value,
-      })),
-    );
-  }
-
-  /**
    * Applies the provided functions to this ValidationResult, depending on whether it failed or succeeded,
    * and returns the result.
    */

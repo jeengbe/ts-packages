@@ -600,6 +600,43 @@ describe('env.discriminate', () => {
     });
   });
 
+  it('allows a transformer to return a ValidationFailure on the discriminator itself', () => {
+    const spec = env
+      .discriminate('type', env.enum('TYPE', ['a', 'b', 'c']), {
+        a: { value: env.string('A_VALUE') },
+        b: { value: env.number('B_VALUE'), value2: env.number('B_VALUE_2').optional() },
+      })
+      .transform((value, path) => {
+        if (value.type === 'a' && value.value === 'invalid') {
+          return Either.left({
+            errors: [
+              {
+                path: `${path}.type`,
+                key: 'TYPE',
+                message: 'invalid value for type a',
+                value: value.value,
+              },
+            ],
+          });
+        }
+
+        return Either.right(value);
+      });
+
+    const values: Record<string, string> = { TYPE: 'a', A_VALUE: 'invalid' };
+
+    expect(spec.validate((key) => values[key], '$').getLeft()).toEqual<ValidationFailure>({
+      errors: [
+        {
+          path: '$.type',
+          key: 'TYPE',
+          message: 'invalid value for type a',
+          value: 'invalid',
+        },
+      ],
+    });
+  });
+
   it('types the result as a discriminated union', () => {
     assertType<
       | {
