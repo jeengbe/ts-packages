@@ -1,5 +1,16 @@
 # @jeengbe/config
 
+## 1.0.0
+
+### Major Changes
+
+- [#13](https://github.com/jeengbe/ts-packages/pull/13) [`7bfd7aa`](https://github.com/jeengbe/ts-packages/commit/7bfd7aade09bcaba05e03ca9d59d79e8b1e049b2) - feat!: release 1.0
+
+### Patch Changes
+
+- Updated dependencies [[`a4589f7`](https://github.com/jeengbe/ts-packages/commit/a4589f7ebe909b9b2baac2a171fa8bc2efaf3cce), [`7bfd7aa`](https://github.com/jeengbe/ts-packages/commit/7bfd7aade09bcaba05e03ca9d59d79e8b1e049b2)]:
+  - @jeengbe/prelude@0.1.4
+
 ## 0.0.9
 
 ### Patch Changes

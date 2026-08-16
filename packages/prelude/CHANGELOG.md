@@ -1,5 +1,13 @@
 # @jeengbe/prelude
 
+## 0.1.4
+
+### Patch Changes
+
+- [#13](https://github.com/jeengbe/ts-packages/pull/13) [`a4589f7`](https://github.com/jeengbe/ts-packages/commit/a4589f7ebe909b9b2baac2a171fa8bc2efaf3cce) - fix: export EitherBase
+
+- [#13](https://github.com/jeengbe/ts-packages/pull/13) [`7bfd7aa`](https://github.com/jeengbe/ts-packages/commit/7bfd7aade09bcaba05e03ca9d59d79e8b1e049b2) - fix: add more jsdoc
+
 ## 0.1.3
 
 ### Patch Changes
