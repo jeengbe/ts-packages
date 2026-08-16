@@ -1,5 +1,11 @@
 # @jeengbe/prelude
 
+## 0.1.1
+
+### Patch Changes
+
+- [`e65c3ea`](https://github.com/jeengbe/ts-packages/commit/e65c3ea6f273ac750fa203f4fb62ed54a12c0e2d) - fix: add crude readme
+
 ## 0.1.0
 
 ### Minor Changes
