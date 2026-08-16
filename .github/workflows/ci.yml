@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,12 +35,13 @@ jobs:
 
       - run: pnpm test:coverage
 
-      - name: Report coverage on PR
-        if: github.event_name == 'pull_request'
-        uses: davelosert/vitest-coverage-report-action@v2
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
         with:
-          json-summary-path: coverage/coverage-summary.json
-          json-final-path: coverage/coverage-final.json
+          use_oidc: true
+          files: ./coverage/coverage-final.json
+          flags: cache,config,prelude,spiffe
+          fail_ci_if_error: true
 
   release:
     needs: ci

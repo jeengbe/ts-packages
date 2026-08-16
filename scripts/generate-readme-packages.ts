@@ -2,6 +2,7 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 
 const START_MARKER = '<!-- packages:start -->';
 const END_MARKER = '<!-- packages:end -->';
+const REPO = 'jeengbe/ts-packages';
 
 interface PackageInfo {
   name: string;
@@ -45,11 +46,16 @@ async function getPackages(): Promise<readonly PackageInfo[]> {
 function renderTable(packages: readonly PackageInfo[]): string {
   const rows = packages.map((pkg) => {
     const description = pkg.description.replaceAll('|', '\\|');
+    const coverage = `[![Coverage](https://codecov.io/gh/${REPO}/branch/master/graph/badge.svg?flag=${pkg.dir})](https://app.codecov.io/gh/${REPO}/tree/master/packages/${pkg.dir})`;
 
-    return `| [\`${pkg.name}\`](packages/${pkg.dir}) | [![npm](https://img.shields.io/npm/v/${pkg.name})](https://www.npmjs.com/package/${pkg.name}) [![JSR](https://jsr.io/badges/${pkg.name})](https://jsr.io/${pkg.name}) | ${description} |`;
+    return `| [\`${pkg.name}\`](packages/${pkg.dir}) | [![npm](https://img.shields.io/npm/v/${pkg.name})](https://www.npmjs.com/package/${pkg.name}) [![JSR](https://jsr.io/badges/${pkg.name})](https://jsr.io/${pkg.name}) | ${coverage} | ${description} |`;
   });
 
-  return ['| Package | Version | Description |', '| --- | --- | --- |', ...rows].join('\n');
+  return [
+    '| Package | Version | Coverage | Description |',
+    '| --- | --- | --- | --- |',
+    ...rows,
+  ].join('\n');
 }
 
 async function main(): Promise<void> {
