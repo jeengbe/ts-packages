@@ -1,5 +1,11 @@
 # @jeengbe/prelude
 
+## 0.1.3
+
+### Patch Changes
+
+- [`a9af9cc`](https://github.com/jeengbe/ts-packages/commit/a9af9cc12c1994b0cad0510bda92bedc191a948a) - fix: add readme
+
 ## 0.1.2
 
 ### Patch Changes
