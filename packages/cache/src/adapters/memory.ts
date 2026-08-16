@@ -1,7 +1,7 @@
 import type { CacheAdapter } from './interface.js';
-import * as fs from 'fs';
 import micromatch from 'micromatch';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 /**
  * A cache engine that respects TTL. It is used by the MemoryCacheAdapter. Compatible with lru-cache.

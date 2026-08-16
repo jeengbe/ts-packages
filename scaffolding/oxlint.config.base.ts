@@ -39,6 +39,7 @@ export const base = defineConfig({
     'unicorn/consistent-existence-index-check': 'error', // Uniformity
     'typescript/consistent-generic-constructors': 'error', // Uniformity
     'typescript/consistent-indexed-object-style': 'error', // Uniformity
+    'unicorn/prefer-node-protocol': 'error', // Explicit node: prefix is recommended on platforms like Deno
   },
   overrides: [
     {

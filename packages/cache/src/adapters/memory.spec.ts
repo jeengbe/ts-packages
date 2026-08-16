@@ -1,9 +1,9 @@
 import type { CacheAdapter } from './interface.js';
 import type { CacheBackupSaver, TtlCacheEngine } from './memory.js';
 import { DiskCacheBackupSaver, MemoryCacheAdapter } from './memory.js';
-import assert from 'assert';
-import * as fs from 'fs';
-import * as path from 'path';
+import assert from 'node:assert';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { beforeEach, describe, expect, it, Mocked, test, vitest } from 'vitest';
 
 describe('MemoryCacheAdapter', () => {

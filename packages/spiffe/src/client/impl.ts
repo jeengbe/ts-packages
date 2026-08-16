@@ -11,8 +11,8 @@ import type { Client, Transport } from '@connectrpc/connect';
 import { Code, ConnectError, createClient } from '@connectrpc/connect';
 import { createGrpcTransport, Http2SessionManager } from '@connectrpc/connect-node';
 import { TTLCache } from '@isaacs/ttlcache';
-import { connect as netConnect } from 'net';
-import { setTimeout } from 'timers/promises';
+import { connect as netConnect } from 'node:net';
+import { setTimeout } from 'node:timers/promises';
 
 /**
  * The SPIFFE Client provides convenience APIs for interacting with the SPIFFE Workload API.

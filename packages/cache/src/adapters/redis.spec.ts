@@ -2,9 +2,9 @@ import type { CacheAdapter } from './interface.js';
 import { RedisCacheAdapter } from './redis.js';
 import type { StartedRedisContainer } from '@testcontainers/redis';
 import { RedisContainer } from '@testcontainers/redis';
-import assert from 'assert';
 import type { ChainableCommander } from 'ioredis';
 import { Redis, ScanStream } from 'ioredis';
+import assert from 'node:assert';
 import { describe, vitest, beforeAll, beforeEach, it, expect } from 'vitest';
 
 describe('RedisCacheAdapter', () => {

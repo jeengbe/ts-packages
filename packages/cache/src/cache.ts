@@ -1,8 +1,8 @@
 import { type CacheAdapter } from './adapters/index.js';
 import type { TtlExpression } from './ttl.js';
 import { ttlToMs } from './ttl.js';
-import assert from 'assert';
-import EventEmitter from 'events';
+import assert from 'node:assert';
+import EventEmitter from 'node:events';
 
 /**
  * Options for the {@link Cache} class.

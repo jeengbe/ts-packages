@@ -4,7 +4,7 @@ import { SpiffeClient } from './impl.js';
 import type { ConnectRouter, ServiceImpl } from '@connectrpc/connect';
 import { Code, ConnectError, createRouterTransport } from '@connectrpc/connect';
 import { connectNodeAdapter } from '@connectrpc/connect-node';
-import * as fs from 'fs/promises';
+import * as fs from 'node:fs/promises';
 import * as http2 from 'node:http2';
 import { describe, beforeEach, it, Mock, beforeAll, expect, vitest } from 'vitest';
 
