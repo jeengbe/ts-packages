@@ -1,5 +1,14 @@
 # @jeengbe/config
 
+## 0.0.9
+
+### Patch Changes
+
+- [`a9af9cc`](https://github.com/jeengbe/ts-packages/commit/a9af9cc12c1994b0cad0510bda92bedc191a948a) - fix: add readme
+
+- Updated dependencies [[`a9af9cc`](https://github.com/jeengbe/ts-packages/commit/a9af9cc12c1994b0cad0510bda92bedc191a948a)]:
+  - @jeengbe/prelude@0.1.3
+
 ## 0.0.8
 
 ### Patch Changes
