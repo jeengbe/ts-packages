@@ -7,7 +7,7 @@ import { isDefined } from './maybe.js';
 // And conversely, xxx implementations in EitherP all look like:
 // new EitherP(this.value.then(e => e.xxx(...)))
 
-abstract class EitherBase<L, R> {
+export abstract class EitherBase<L, R> {
   /**
    * Maps the value of this Either if it is a Right, performs no operation if this is a Left.
    */
@@ -15,6 +15,9 @@ abstract class EitherBase<L, R> {
     return this.flatMap((value) => Either.right(fn(value)));
   }
 
+  /**
+   * Maps the value of this Either if it is a Right, performs no operation if this is a Left, asynchronously.
+   */
   mapAsync<R2>(fn: (t: R) => Promise<R2>): EitherP<L, R2> {
     return EitherP.fromPromise(toEitherPromise(this)).mapAsync(fn);
   }
@@ -29,6 +32,9 @@ abstract class EitherBase<L, R> {
     );
   }
 
+  /**
+   * Flat maps the value of this Either if it is a Left, performs no operation if this is a Right, asynchronously.
+   */
   leftFlatMapAsync<L2, R2>(fn: (t: L) => PromiseLike<Either<L2, R2>>): EitherP<L2, R | R2> {
     return EitherP.fromPromise(toEitherPromise(this)).leftFlatMapAsync(fn);
   }
@@ -43,6 +49,9 @@ abstract class EitherBase<L, R> {
     );
   }
 
+  /**
+   * Maps the value of this Either if it is a Left, performs no operation if this is a Right, asynchronously.
+   */
   leftMapAsync<L2>(fn: (t: L) => Promise<L2>): EitherP<L2, R> {
     return EitherP.fromPromise(toEitherPromise(this)).leftMapAsync(fn);
   }
@@ -57,6 +66,9 @@ abstract class EitherBase<L, R> {
     );
   }
 
+  /**
+   * Applies the provided functions to the value of this Either, depending on whether it is a Right or a Left and returns a new Either, asynchronously.
+   */
   bimapAsync<L2, R2>(
     leftFn: (l: L) => Promise<L2>,
     rightFn: (r: R) => Promise<R2>,
@@ -74,6 +86,9 @@ abstract class EitherBase<L, R> {
     });
   }
 
+  /**
+   * Runs the provided function with the value of this Either if it is a Right, performs no operation if this is a Left, asynchronously.
+   */
   tapAsync(fn: (t: R) => Promise<void>): EitherP<L, R> {
     return EitherP.fromPromise(toEitherPromise(this)).tapAsync(fn);
   }
@@ -86,6 +101,10 @@ abstract class EitherBase<L, R> {
     return this.flatMap((value) => fn(value).map(() => value));
   }
 
+  /**
+   * Runs the provided function with the value of this Either if it is a Right, performs no operation if this is a Left, asynchronously.
+   * If the result of the function is a Left, it will be returned, otherwise the original Right value will be returned.
+   */
   flatTapAsync<L2>(fn: (t: R) => PromiseLike<Either<L2, void>>): EitherP<L | L2, R> {
     return EitherP.fromPromise(toEitherPromise(this)).flatTapAsync(fn);
   }
@@ -100,6 +119,9 @@ abstract class EitherBase<L, R> {
     );
   }
 
+  /**
+   * Flat maps the value of this Either if it is a Right, performs no operation if this is a Left, asynchronously.
+   */
   flatMapAsync<L2, R2>(fn: (t: R) => PromiseLike<Either<L2, R2>>): EitherP<L | L2, R2> {
     return EitherP.fromPromise(toEitherPromise(this)).flatMapAsync(fn);
   }
@@ -149,20 +171,16 @@ abstract class EitherBase<L, R> {
    * Gets the right value if this is a Right or undefined if it's a Left.
    */
   get(): Maybe<R> {
-    return this.fold(
-      () => undefined,
-      (r) => r,
-    );
+    // Overridden in Right#get
+    return undefined;
   }
 
   /**
    * Returns the left value if this is a Left or undefined if it's a Right.
    */
   getLeft(): Maybe<L> {
-    return this.fold(
-      (l) => l,
-      () => undefined,
-    );
+    // Overridden in Left#getLeft
+    return undefined;
   }
 
   /**
@@ -176,8 +194,8 @@ abstract class EitherBase<L, R> {
   }
 }
 
-// EitherBase is abstract with only Left/Right as concrete subclasses; the cast is always valid.
 function toEitherPromise<L, R>(e: EitherBase<L, R>): Promise<Either<L, R>> {
+  // EitherBase is abstract with only Left/Right as concrete subclasses; the cast is always valid.
   return Promise.resolve(e as unknown as Either<L, R>);
 }
 
@@ -193,6 +211,14 @@ export class Left<L> extends EitherBase<L, never> {
   override getLeft(): L {
     return this.value;
   }
+
+  override toString(): string {
+    return `Left(${String(this.value)})`;
+  }
+
+  get [Symbol.toStringTag](): string {
+    return 'Left';
+  }
 }
 
 export class Right<R> extends EitherBase<never, R> {
@@ -207,11 +233,17 @@ export class Right<R> extends EitherBase<never, R> {
   override get(): R {
     return this.value;
   }
+
+  override toString(): string {
+    return `Right(${String(this.value)})`;
+  }
+
+  get [Symbol.toStringTag](): string {
+    return 'Right';
+  }
 }
 
 /**
- * Mimics the [Cats Either[L, R]](https://typelevel.org/cats/datatypes/either.html) type.
- *
  * Either<L, R> is a union of Left<L> and Right<R>, so narrowing works in both directions:
  *
  * ```ts
@@ -241,17 +273,28 @@ export namespace Either {
     return new Right(value);
   }
 
+  /**
+   * Creates a Right Either from a Maybe if it is defined, or a Left Either from the result of the provided function otherwise.
+   */
   export function fromMaybe<L, R>(value: Maybe<R>, leftValue: () => L): Either<L, R> {
     return isDefined(value) ? Either.right(value) : Either.left(leftValue());
   }
 
+  /**
+   * Creates a Right Either from the result of `rightFn` if `bool` is true, or a Left Either from the result of `leftFn` otherwise.
+   */
   export function cond<L, R>(bool: boolean, leftFn: () => L, rightFn: () => R): Either<L, R> {
     return bool ? Either.right(rightFn()) : Either.left(leftFn());
   }
 }
 
 /**
- * Mimics the [Cats EitherT[Future, L, R]](https://typelevel.org/cats/datatypes/eithert.html) type.
+ * Asynchronous version of @{link Either}, allowing for asynchronous operations on the values of the Either.
+ *
+ * ```ts
+ * declare const e: EitherP<string, number>;
+ *
+ * const result = await e.get(); // result is of type Maybe<number>
  */
 export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
   private constructor(private readonly value: PromiseLike<Either<L, R>>) {}
@@ -263,6 +306,9 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     return new EitherP(this.value.then((e) => e.map(fn)));
   }
 
+  /**
+   * Maps the value of this Either if it is a Right, performs no operation if this is a Left, asynchronously.
+   */
   mapAsync<R2>(fn: (t: R) => Promise<R2>): EitherP<L, R2> {
     return this.flatMapAsync(async (value) => Either.right(await fn(value)));
   }
@@ -274,6 +320,9 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     return new EitherP(this.value.then((e) => e.leftMap(fn)));
   }
 
+  /**
+   * Maps the value of this Either if it is a Left, performs no operation if this is a Right, asynchronously.
+   */
   leftMapAsync<L2>(fn: (t: L) => Promise<L2>): EitherP<L2, R> {
     return new EitherP(
       this.value.then(
@@ -293,6 +342,9 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     return new EitherP(this.value.then((e) => e.leftFlatMap(fn)));
   }
 
+  /**
+   * Flat maps the value of this Either if it is a Left, performs no operation if this is a Right, asynchronously.
+   */
   leftFlatMapAsync<L2, R2>(fn: (t: L) => PromiseLike<Either<L2, R2>>): EitherP<L2, R | R2> {
     return new EitherP(
       this.value.then<Either<L2, R | R2>>(
@@ -312,6 +364,9 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     return new EitherP(this.value.then((e) => e.bimap(leftFn, rightFn)));
   }
 
+  /**
+   * Applies the provided functions to the value of this Either, depending on whether it is a Right or a Left and returns a new Either, asynchronously.
+   */
   bimapAsync<L2, R2>(
     leftFn: (l: L) => Promise<L2>,
     rightFn: (r: R) => Promise<R2>,
@@ -334,6 +389,9 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     return new EitherP(this.value.then((e) => e.tap(fn)));
   }
 
+  /**
+   * Runs the provided function with the value of this Either if it is a Right, performs no operation if this is a Left, asynchronously.
+   */
   tapAsync(fn: (t: R) => Promise<void>): EitherP<L, R> {
     return this.flatMapAsync(async (value) => {
       await fn(value);
@@ -349,6 +407,10 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     return new EitherP(this.value.then((e) => e.flatTap(fn)));
   }
 
+  /**
+   * Runs the provided function with the value of this Either if it is a Right, performs no operation if this is a Left, asynchronously.
+   * If the result of the function is a Left, it will be returned, otherwise the original Right value will be returned.
+   */
   flatTapAsync<L2>(fn: (t: R) => PromiseLike<Either<L2, void>>): EitherP<L | L2, R> {
     return this.flatMapAsync(async (value) => (await fn(value)).map(() => value));
   }
@@ -360,6 +422,9 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     return new EitherP(this.value.then((e) => e.flatMap(fn)));
   }
 
+  /**
+   * Flat maps the value of this Either if it is a Right, performs no operation if this is a Left, asynchronously.
+   */
   flatMapAsync<L2, R2>(fn: (t: R) => PromiseLike<Either<L2, R2>>): EitherP<L | L2, R2> {
     return new EitherP(
       this.value.then<Either<L | L2, R2>>((e) =>
@@ -443,6 +508,9 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     return new EitherP(value.then((v) => Either.right(v)));
   }
 
+  /**
+   * Creates a Right EitherP from a Promise of a Maybe if it resolves to a defined value, or a Left EitherP from the result of the provided function otherwise.
+   */
   static fromMaybe<L, R>(value: Promise<Maybe<R>>, leftValue: () => Promise<L>): EitherP<L, R> {
     return new EitherP(
       value.then(async (v) => (isDefined(v) ? Either.right(v) : Either.left(await leftValue()))),
@@ -450,16 +518,15 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
   }
 
   /**
-   * @deprecated
+   * Creates a new EitherP from a Promise of an Either.
    */
-  static fromEither<L, R>(either: PromiseLike<Either<L, R>>): EitherP<L, R> {
-    return new EitherP(either);
-  }
-
   static fromPromise<L, R>(either: PromiseLike<Either<L, R>>): EitherP<L, R> {
     return new EitherP(either);
   }
 
+  /**
+   * Creates a new Right EitherP if the provided Promise resolves to true, or a new Left EitherP otherwise.
+   */
   static cond<L, R>(
     bool: Promise<boolean>,
     leftFn: () => Promise<L>,
@@ -470,6 +537,9 @@ export class EitherP<L, R> implements PromiseLike<Either<L, R>> {
     );
   }
 
+  /**
+   * Resolves this EitherP to its underlying Either, allowing `await` usage on EitherP instances.
+   */
   // oxlint-disable-next-line unicorn/no-thenable -- Deliberately implementing PromiseLike to allow for `await` usage on EitherP instances.
   then<U>(onfulfilled?: (value: Either<L, R>) => U | PromiseLike<U>): PromiseLike<U> {
     return this.value.then(onfulfilled);

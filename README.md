@@ -26,14 +26,14 @@ Each package has its own README with installation and usage instructions. All pa
 
 ## Development
 
-| Command              | Description                                                            |
-| -------------------- | ---------------------------------------------------------------------- |
-| `pnpm build`         | Build all packages                                                     |
-| `pnpm test`          | Run tests for all packages                                             |
-| `pnpm test:coverage` | Run tests with coverage                                                |
-| `pnpm lint`          | Lint and format, fixing what can be auto-fixed                         |
-| `pnpm lint:readonly` | Lint and format check without making changes (used in CI)              |
-| `pnpm docs:packages` | Regenerate the packages table below from each package's `package.json` |
+| Command              | Description                                               |
+| -------------------- | --------------------------------------------------------- |
+| `pnpm build`         | Build all packages                                        |
+| `pnpm test`          | Run tests for all packages                                |
+| `pnpm test:coverage` | Run tests with coverage                                   |
+| `pnpm lint`          | Lint and format, fixing what can be auto-fixed            |
+| `pnpm lint:readonly` | Lint and format check without making changes (used in CI) |
+| `pnpm sync-repo`     | Re-derive files that are generated from the repo state    |
 
 Shared tooling config (`tsconfig`, `oxlint`, `oxfmt`, `vitest`, `tsdown`) lives in [`scaffolding`](scaffolding) and is extended by every package.
 

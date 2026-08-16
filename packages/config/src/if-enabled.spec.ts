@@ -1,6 +1,6 @@
 import { env } from './env.js';
 import { ifEnabled } from './if-enabled.js';
-import { describe, expect, it, vitest } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 describe('ifEnabled', () => {
   const spec = ifEnabled('FEATURE_ENABLED', {
@@ -8,33 +8,36 @@ describe('ifEnabled', () => {
   });
 
   it('returns the enabled branch when the env var is "true"', () => {
-    vitest.stubEnv('FEATURE_ENABLED', 'true');
-
-    const result = env.load(spec);
+    const result = env.load(spec, {
+      FEATURE_ENABLED: 'true',
+    });
 
     expect(result).toEqual({ enabled: true, foo: 'default' });
   });
 
   it('returns the disabled branch when the env var is "false"', () => {
-    vitest.stubEnv('FEATURE_ENABLED', 'false');
-
-    const result = env.load(spec);
+    const result = env.load(spec, {
+      FEATURE_ENABLED: 'false',
+    });
 
     expect(result).toEqual({ enabled: false });
   });
 
-  it('throws when the env var is neither "enabled" nor "disabled"', () => {
-    vitest.stubEnv('FEATURE_ENABLED', 'maybe');
-
-    expect(() => env.load(spec)).toThrow(
-      "Failed to load config: FEATURE_ENABLED ($): invalid boolean (must be 'true' or 'false')",
-    );
+  it('throws when the env var is neither "true" nor "false"', () => {
+    expect(() =>
+      env.load(spec, {
+        FEATURE_ENABLED: 'maybe',
+      }),
+    ).toThrowErrorMatchingInlineSnapshot(`
+      [Error: Environment validation failed:
+        $.enabled (FEATURE_ENABLED): invalid boolean (must be 'true' or 'false'; got: 'maybe')]
+    `);
   });
 
   it('defaults to disabled when the env var is missing', () => {
-    vitest.stubEnv('FEATURE_ENABLED', undefined);
-
-    const result = env.load(spec);
+    const result = env.load(spec, {
+      FEATURE_ENABLED: undefined,
+    });
 
     expect(result).toEqual({ enabled: false });
   });

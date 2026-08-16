@@ -487,6 +487,16 @@ describe('Either', () => {
       expect(either.getLeft()).toBe('leftResult');
     });
   });
+
+  it('should return the correct string representation for Left and Right', () => {
+    const left = Either.left('error');
+    const right = Either.right(42);
+
+    expect(left.toString()).toBe('Left(error)');
+    expect(right.toString()).toBe('Right(42)');
+    expect(Object.prototype.toString.call(left)).toBe('[object Left]');
+    expect(Object.prototype.toString.call(right)).toBe('[object Right]');
+  });
 });
 
 describe('EitherP', () => {

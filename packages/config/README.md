@@ -60,15 +60,15 @@ const config = env.load({
 
 Without a `defaultValue`, all of these are required and fail validation when the variable is missing.
 
-### Custom scalars (`env.custom`)
+### Custom scalars (`env.scalar`)
 
-For anything else, write your own parser with `env.custom`. It returns a `ValidationResult<T>` (an `Either<readonly string[], T>` from `@jeengbe/prelude`):
+For anything else, write your own parser with `env.scalar`. It returns a `ValidationResult<T>` (an `Either<readonly string[], T>` from `@jeengbe/prelude`):
 
 ```ts
 import { env } from '@jeengbe/config';
 import { Either } from '@jeengbe/prelude';
 
-const apiUrl = env.custom('API_URL', (value) => {
+const apiUrl = env.scalar('API_URL', (value) => {
   try {
     return Either.right(new URL(value));
   } catch {
