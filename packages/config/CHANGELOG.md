@@ -1,5 +1,16 @@
 # @jeengbe/config
 
+## 0.0.8
+
+### Patch Changes
+
+- [`a518988`](https://github.com/jeengbe/ts-packages/commit/a5189883221a5cb35d484f64eaa4a8c27a6a538b) - fix: codecov components
+
+- [`748383c`](https://github.com/jeengbe/ts-packages/commit/748383cbaf41bba1cb85c8563e0a2e355c84fa9d) - fix: codecov
+
+- Updated dependencies [[`a518988`](https://github.com/jeengbe/ts-packages/commit/a5189883221a5cb35d484f64eaa4a8c27a6a538b), [`748383c`](https://github.com/jeengbe/ts-packages/commit/748383cbaf41bba1cb85c8563e0a2e355c84fa9d)]:
+  - @jeengbe/prelude@0.1.2
+
 ## 0.0.7
 
 ### Patch Changes
