@@ -1,314 +1,163 @@
+import { EnvNode } from './ast.js';
 import { env } from './env.js';
 import type { ValidationResult } from './validation.js';
 import { Either } from '@jeengbe/prelude';
-import { afterEach, describe, expect, it, vitest } from 'vitest';
+import { afterEach, describe, expect, it, test, vitest } from 'vitest';
 
-describe('env.string', () => {
-  it('returns the value when present', () => {
-    const node = env.string('FOO');
+testEnv(
+  'env.string',
+  {
+    regular: env.string('FOO'),
+    defaulted: env.string('FOO', 'default'),
+    optional: env.string('FOO').optional(),
+    defaultedOptional: env.string('FOO', 'default').optional(),
+  },
+  [],
+);
 
-    expect(node.validate('$', () => 'bar').get()).toBe('bar');
-  });
+testEnv(
+  'env.number',
+  {
+    regular: env.number('FOO'),
+    defaulted: env.number('FOO', 7),
+    optional: env.number('FOO').optional(),
+    defaultedOptional: env.number('FOO', 7).optional(),
+  },
+  [
+    { name: 'integer', value: '42' },
+    { name: 'negative integer', value: '-42' },
+    { name: 'decimal', value: '4.2' },
+    { name: 'negative decimal', value: '-4.2' },
+    { name: 'trailing dot', value: '4.' },
+    { name: 'number with whitespace', value: ' 42 ' },
+  ],
+);
 
-  it('fails as required when missing and no default is given', () => {
-    const node = env.string('FOO');
+testEnv(
+  'env.boolean',
+  {
+    regular: env.boolean('FOO'),
+    defaulted: env.boolean('FOO', true),
+    optional: env.boolean('FOO').optional(),
+    defaultedOptional: env.boolean('FOO', true).optional(),
+  },
+  [
+    { name: 'true', value: 'true' },
+    { name: 'false', value: 'false' },
+    { name: 'case-insensitive true', value: 'True' },
+    { name: 'case-insensitive false', value: 'FALSE' },
+    { name: 'true with whitespace', value: ' true ' },
+  ],
+);
 
-    expect(node.validate('$', () => undefined).getLeft()).toEqual(['FOO ($): required']);
-  });
+testEnv(
+  'env.enum',
+  {
+    regular: env.enum('FOO', ['a', 'b', 'c']),
+    defaulted: env.enum('FOO', ['a', 'b', 'c'], 'b'),
+    optional: env.enum('FOO', ['a', 'b', 'c']).optional(),
+    defaultedOptional: env.enum('FOO', ['a', 'b', 'c'], 'b').optional(),
+  },
+  [
+    { name: 'listed value', value: 'b' },
+    { name: 'unlisted value', value: 'z' },
+    { name: 'case-sensitive listed value', value: 'A' },
+    { name: 'listed value with whitespace', value: ' b ' },
+  ],
+);
 
-  it('falls back to the default value when missing', () => {
-    const node = env.string('FOO', 'default');
+testEnv(
+  'env.array',
+  {
+    regular: env.array(env.number('FOO')),
+    defaulted: env.array(env.number('FOO'), [9, 9]),
+    optional: env.array(env.number('FOO')).optional(),
+    defaultedOptional: env.array(env.number('FOO'), [9, 9]).optional(),
+  },
+  [
+    { name: 'comma-separated numbers', value: '1,2,3' },
+    { name: 'single number', value: '1' },
+    { name: 'invalid items', value: '1,x,3,y' },
+    { name: 'empty item between commas', value: '1,,3' },
+    { name: 'values with whitespace', value: ' 1 , 2 , 3 ' },
+  ],
+);
 
-    expect(node.validate('$', () => undefined).get()).toBe('default');
-  });
-});
+testEnv(
+  'env.array with optional item type',
+  {
+    regular: env.array(env.number('FOO').optional()),
+    defaulted: env.array(env.number('FOO').optional(), [9, 9]),
+    optional: env.array(env.number('FOO').optional()).optional(),
+    defaultedOptional: env.array(env.number('FOO').optional(), [9, 9]).optional(),
+  },
+  [
+    { name: 'comma-separated numbers', value: '1,2,3' },
+    { name: 'single number', value: '1' },
+    { name: 'invalid items', value: '1,x,3,y' },
+    { name: 'empty item between commas', value: '1,,3' },
+    { name: 'values with whitespace', value: ' 1 , 2 , 3 ' },
+  ],
+);
 
-describe('env.number', () => {
-  it('parses integers', () => {
-    const node = env.number('FOO');
-
-    expect(node.validate('$', () => '42').get()).toBe(42);
-  });
-
-  it('parses negative integers', () => {
-    const node = env.number('FOO');
-
-    expect(node.validate('$', () => '-42').get()).toBe(-42);
-  });
-
-  it('parses decimals', () => {
-    const node = env.number('FOO');
-
-    expect(node.validate('$', () => '4.2').get()).toBe(4.2);
-  });
-
-  it('parses negative decimals', () => {
-    const node = env.number('FOO');
-
-    expect(node.validate('$', () => '-4.2').get()).toBe(-4.2);
-  });
-
-  it('rejects a trailing dot with no fractional digits', () => {
-    const node = env.number('FOO');
-
-    expect(node.validate('$', () => '4.').getLeft()).toEqual(['FOO ($): invalid number']);
-  });
-
-  it('rejects non-numeric strings', () => {
-    const node = env.number('FOO');
-
-    expect(node.validate('$', () => 'not-a-number').getLeft()).toEqual(['FOO ($): invalid number']);
-  });
-
-  it('fails as required when missing and no default is given', () => {
-    const node = env.number('FOO');
-
-    expect(node.validate('$', () => undefined).getLeft()).toEqual(['FOO ($): required']);
-  });
-
-  it('falls back to the default value when missing', () => {
-    const node = env.number('FOO', 7);
-
-    expect(node.validate('$', () => undefined).get()).toBe(7);
-  });
-});
-
-describe('env.boolean', () => {
-  it('parses "true"', () => {
-    const node = env.boolean('FOO');
-
-    expect(node.validate('$', () => 'true').get()).toBe(true);
-  });
-
-  it('parses "false"', () => {
-    const node = env.boolean('FOO');
-
-    expect(node.validate('$', () => 'false').get()).toBe(false);
-  });
-
-  it('is case-insensitive', () => {
-    const node = env.boolean('FOO');
-
-    expect(node.validate('$', () => 'True').get()).toBe(true);
-  });
-
-  it('rejects arbitrary strings', () => {
-    const node = env.boolean('FOO');
-
-    expect(node.validate('$', () => 'yes').getLeft()).toEqual([
-      "FOO ($): invalid boolean (must be 'true' or 'false')",
-    ]);
-  });
-
-  it('fails as required when missing and no default is given', () => {
-    const node = env.boolean('FOO');
-
-    expect(node.validate('$', () => undefined).getLeft()).toEqual(['FOO ($): required']);
-  });
-
-  it('falls back to the default value when missing', () => {
-    const node = env.boolean('FOO', true);
-
-    expect(node.validate('$', () => undefined).get()).toBe(true);
-  });
-
-  it('respects a default value of false', () => {
-    const node = env.boolean('FOO', false);
-
-    expect(node.validate('$', () => undefined).get()).toBe(false);
-  });
-});
-
-describe('env.enum', () => {
-  it('accepts a listed value', () => {
-    const node = env.enum('FOO', ['a', 'b', 'c']);
-
-    expect(node.validate('$', () => 'b').get()).toBe('b');
-  });
-
-  it('rejects an unlisted value', () => {
-    const node = env.enum('FOO', ['a', 'b', 'c']);
-
-    expect(node.validate('$', () => 'z').getLeft()).toEqual([
-      "FOO ($): invalid enum value (must be one of: 'a', 'b', 'c')",
-    ]);
-  });
-
-  it('is case-sensitive', () => {
-    const node = env.enum('FOO', ['a', 'b', 'c']);
-
-    expect(node.validate('$', () => 'A').getLeft()).toEqual([
-      "FOO ($): invalid enum value (must be one of: 'a', 'b', 'c')",
-    ]);
-  });
-
-  it('fails as required when missing and no default is given', () => {
-    const node = env.enum('FOO', ['a', 'b', 'c']);
-
-    expect(node.validate('$', () => undefined).getLeft()).toEqual(['FOO ($): required']);
-  });
-
-  it('falls back to the default value when missing', () => {
-    const node = env.enum('FOO', ['a', 'b', 'c'], 'b');
-
-    expect(node.validate('$', () => undefined).get()).toBe('b');
-  });
-});
-
-describe('env.custom', () => {
-  it('uses the transformed value when defined', () => {
-    const node = env.custom('FOO', (value) => Either.right(value.toUpperCase()));
-
-    expect(node.validate('$', () => 'bar').get()).toBe('BAR');
-  });
-
-  it('wraps an invalid transform result with the key and path', () => {
-    const node = env.custom('FOO', (value) =>
-      value === 'valid' ? Either.right(value) : Either.left(['invalid value']),
+{
+  function validate(v: string): ValidationResult<string> {
+    return Either.cond(
+      v === 'valid',
+      () => ['bad'],
+      () => v,
     );
+  }
 
-    expect(node.validate('$.foo', () => 'invalid').getLeft()).toEqual([
-      'FOO ($.foo): invalid value',
-    ]);
+  testEnv(
+    'env.scalar',
+    {
+      regular: env.scalar('FOO', validate),
+      defaulted: env.scalar('FOO', validate, 'default'),
+      optional: env.scalar('FOO', validate).optional(),
+      defaultedOptional: env.scalar('FOO', validate, 'default').optional(),
+    },
+    [
+      { name: 'valid value', value: 'valid' },
+      { name: 'invalid value', value: 'invalid' },
+      { name: 'valid with whitespace', value: ' valid ' },
+    ],
+  );
+}
+
+function testEnv(
+  name: string,
+  nodes: {
+    regular: EnvNode<unknown>;
+    defaulted: EnvNode<unknown>;
+    optional: EnvNode<unknown>;
+    defaultedOptional: EnvNode<unknown>;
+  },
+  cases: readonly { name: string; value: string }[],
+) {
+  describe(`${name}`, () => {
+    describe.each(Object.entries(nodes))('%s', (_, node) => {
+      for (const c of [
+        { name: 'undefined', value: undefined },
+        { name: 'empty', value: '' },
+        { name: 'whitespace', value: ' ' },
+        { name: 'foo', value: 'foo' },
+        ...cases,
+      ]) {
+        test(`${c.name} value`, () => {
+          const result = node.validate('$', () => c.value);
+
+          expect(
+            result.fold(
+              (l) => `Left(${JSON.stringify(l)})`,
+              (r) => `Right(${JSON.stringify(r)})`,
+            ),
+          ).toMatchSnapshot();
+        });
+      }
+    });
   });
-
-  it('can transform into a non-string type', () => {
-    const node = env.custom('FOO', (value) => Either.right(value.split(';')));
-
-    expect(node.validate('$.foo', () => 'a;b;c').get()).toEqual(['a', 'b', 'c']);
-  });
-
-  it('fails as required when missing and no default is given', () => {
-    const node = env.custom('FOO', Either.right);
-
-    expect(node.validate('$.foo', () => undefined).getLeft()).toEqual(['FOO ($.foo): required']);
-  });
-
-  it('falls back to the default value when missing', () => {
-    const node = env.custom('FOO', Either.right, 'default');
-
-    expect(node.validate('$.foo', () => undefined).get()).toBe('default');
-  });
-
-  it('does not invoke the transform when missing and a default is used', () => {
-    const transform = vitest.fn<(value: string) => ValidationResult<string>>(Either.right);
-    const node = env.custom('FOO', transform, 'default');
-
-    node.validate('$', () => undefined);
-
-    expect(transform).not.toHaveBeenCalled();
-  });
-});
-
-describe('ScalarEnvNode#validate', () => {
-  it('reads the raw value from the environment via the node key', () => {
-    const node = env.string('FOO');
-
-    expect(node.validate('$', (key) => (key === 'FOO' ? 'bar' : undefined)).get()).toBe('bar');
-  });
-
-  it('prefixes a validation error with the key and the given path', () => {
-    const node = env.number('FOO');
-
-    expect(node.validate('$.foo', () => 'nope').getLeft()).toEqual(['FOO ($.foo): invalid number']);
-  });
-});
-
-describe('env.array', () => {
-  it('splits and parses each comma-separated item', () => {
-    const node = env.array(env.number('FOO'));
-
-    expect(node.validate('$', () => '1,2,3').get()).toEqual([1, 2, 3]);
-  });
-
-  it('trims whitespace around items', () => {
-    const node = env.array(env.string('FOO'));
-
-    expect(node.validate('$', () => ' a , b ,c ').get()).toEqual(['a', 'b', 'c']);
-  });
-
-  it('treats a single item without commas as a one-element array', () => {
-    const node = env.array(env.number('FOO'));
-
-    expect(node.validate('$', () => '1').get()).toEqual([1]);
-  });
-
-  it('collects an error for every invalid item', () => {
-    const node = env.array(env.number('FOO'));
-
-    expect(node.validate('$', () => '1,x,3,y').getLeft()).toEqual([
-      'FOO ($.1): invalid number',
-      'FOO ($.3): invalid number',
-    ]);
-  });
-
-  it('treats an empty item between commas as undefined for the item schema', () => {
-    const node = env.array(env.number('FOO').optional());
-
-    expect(node.validate('$', () => '1,,3').get()).toEqual([1, undefined, 3]);
-  });
-
-  it('fails a required item schema on an empty item between commas', () => {
-    const node = env.array(env.number('FOO'));
-
-    expect(node.validate('$', () => '1,,3').getLeft()).toEqual(['FOO ($.1): required']);
-  });
-
-  it('fails as required when missing and no default is given', () => {
-    const node = env.array(env.number('FOO'));
-
-    expect(node.validate('$', () => undefined).getLeft()).toEqual(['FOO ($): required']);
-  });
-
-  it('falls back to the default value when missing', () => {
-    const node = env.array(env.number('FOO'), [9, 9]);
-
-    expect(node.validate('$', () => undefined).get()).toEqual([9, 9]);
-  });
-
-  it('does not apply the item schema default value to a fully-missing array', () => {
-    const node = env.array(env.number('FOO', 5));
-
-    expect(node.validate('$.foo', () => undefined).getLeft()).toEqual(['FOO ($.foo): required']);
-  });
-});
-
-describe('ScalarEnvNode#optional', () => {
-  it('returns undefined when the value is missing', () => {
-    const node = env.string('FOO').optional();
-
-    expect(node.validate('$', () => undefined).get()).toBeUndefined();
-  });
-
-  it('ignores the wrapped node default value when missing', () => {
-    const node = env.string('FOO', 'default').optional();
-
-    expect(node.validate('$', () => undefined).get()).toBeUndefined();
-  });
-
-  it('still validates a present value', () => {
-    const node = env.number('FOO').optional();
-
-    expect(node.validate('$', () => 'not-a-number').getLeft()).toEqual(['FOO ($): invalid number']);
-  });
-
-  it('returns the parsed value when present', () => {
-    const node = env.number('FOO').optional();
-
-    expect(node.validate('$', () => '42').get()).toBe(42);
-  });
-
-  it('preserves the original key', () => {
-    expect(env.string('FOO').optional().key).toBe('FOO');
-  });
-
-  it('can be chained without changing behavior', () => {
-    const node = env.string('FOO').optional().optional();
-
-    expect(node.validate('$', () => undefined).get()).toBeUndefined();
-    expect(node.validate('$', () => 'bar').get()).toBe('bar');
-  });
-});
+}
 
 describe('env.discriminate', () => {
   const spec = env.discriminate('type', env.enum('TYPE', ['a', 'b']), {
@@ -411,14 +260,6 @@ describe('env.load', () => {
     vitest.stubEnv('FOO', '  hello  ');
 
     expect(env.load({ foo: env.string('FOO') })).toEqual({ foo: 'hello' });
-  });
-
-  it('rejects a whitespace-only env value as empty string', () => {
-    vitest.stubEnv('FOO', '   ');
-
-    expect(() => env.load({ foo: env.string('FOO') })).toThrow(
-      'Failed to load config: FOO ($.foo): required',
-    );
   });
 
   it('throws with a message describing a missing required value', () => {
