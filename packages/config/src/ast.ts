@@ -1,8 +1,10 @@
-// oxlint-disable-next-line no-unused-vars -- Used in JSDoc
-import { Env } from './env.js';
+import { ValidationResult } from './validation.js';
+import { Either, EitherBase } from '@jeengbe/prelude';
 
-import type { ValidationResult } from './validation.js';
-import { Either } from '@jeengbe/prelude';
+// oxlint-disable-next-line no-unused-vars -- Imported for JSDoc
+import type { Env } from './env.js';
+// oxlint-disable-next-line no-unused-vars -- Imported for JSDoc
+import type { ValidationError, ValidationFailure } from './validation.js';
 
 const nodeType = Symbol('type');
 
@@ -13,13 +15,19 @@ const nodeType = Symbol('type');
  */
 export class EnvNode<T> {
   declare private readonly [nodeType]: T;
+  readonly validate: (
+    loadValue: (key: string) => string | undefined,
+    path: string,
+  ) => ValidationResult<T>;
 
   constructor(
-    readonly validate: (
-      path: string,
+    validate: (
       loadValue: (key: string) => string | undefined,
-    ) => ValidationResult<T>,
-  ) {}
+      path: string,
+    ) => ValidationResultOrEither<T>,
+  ) {
+    this.validate = (loadValue, path) => recoverValidationResultOrEither(validate(loadValue, path));
+  }
 
   /**
    * Transforms the validated value of this node into a new value, or fails validation.
@@ -29,14 +37,22 @@ export class EnvNode<T> {
    * ```ts
    * const res = env.load(
    *   //  ^? number
-   *   env
-   *     .number('PORT')
-   *     .transform((port) => (port > 0 ? Either.right(port) : Either.left(['must be positive']))),
+   *   env.number('PORT').transform((port, path) =>
+   *     port > 0
+   *       ? ValidationResult.success({ value: port, defaulted: [] })
+   *       : ValidationResult.fail({
+   *           errors: [{ path, key: 'PORT', message: 'must be positive', value: port }],
+   *         }),
+   *   ),
    * );
    * ```
    */
-  transform<U>(transform: (value: T) => ValidationResult<U>): EnvNode<U> {
-    return new EnvNode((path, loadValue) => this.validate(path, loadValue).flatMap(transform));
+  transform<U>(transform: (value: T, path: string) => ValidationResultOrEither<U>): EnvNode<U> {
+    return new EnvNode((loadValue, path) =>
+      this.validate(loadValue, path).flatMap((value) =>
+        recoverValidationResultOrEither(transform(value, path)),
+      ),
+    );
   }
 }
 
@@ -51,12 +67,12 @@ export class ScalarEnvNode<T> extends EnvNode<T> {
     private readonly validateValue: (
       value: string | undefined,
       path: string,
-    ) => ValidationResult<T>,
+    ) => ScalarValidationResultOrEither<T>,
   ) {
-    super((path, loadValue) => {
-      return validateValue(loadValue(key), path).leftMap((errors) =>
-        errors.map((error) => `${key} (${path}): ${error}`),
-      );
+    super((loadValue, path) => {
+      const value = loadValue(key);
+
+      return recoverScalarValidationResultOrEither(validateValue(value, path), path, key, value);
     });
   }
 
@@ -72,21 +88,130 @@ export class ScalarEnvNode<T> extends EnvNode<T> {
    * );
    *
    * // PORT=3000 -> 3000
-   * // PORT= -> undefined
+   * // PORT= -> error
    * // (not set) -> undefined
    * ```
    */
   optional(): ScalarEnvNode<T | undefined> {
     return new ScalarEnvNode<T | undefined>(this.key, (value, path) =>
-      value === undefined ? Either.right(undefined) : this.validateValue(value, path),
+      value === undefined
+        ? ValidationResult.success({
+            value: undefined,
+            defaulted: [
+              {
+                path,
+                key: this.key,
+                defaultValue: undefined,
+              },
+            ],
+          })
+        : this.validateValue(value, path),
     );
   }
 
-  override transform<U>(transform: (value: T) => ValidationResult<U>): ScalarEnvNode<U> {
+  /**
+   * Transforms the validated value of this node into a new value, or fails validation.
+   *
+   * As a shorthand for the common case of a single error message, `transform` may return a plain
+   * `Either<string, U>` instead of a full `ValidationResult<U>`. The error string is automatically
+   * wrapped into a {@link ValidationError} using this node's key, its path, and the value that failed to
+   * transform.
+   *
+   * @example
+   *
+   * ```ts
+   * const res = env.load(
+   *   //  ^? number
+   *   env.number('PORT').transform((port) =>
+   *     port > 0 ? Either.right(port) : Either.left('must be positive'),
+   *   ),
+   * );
+   * ```
+   *
+   * @example
+   *
+   * ```ts
+   * const res = env.load(
+   *   //  ^? number
+   *   env.number('PORT').transform((port, path) =>
+   *     port > 0
+   *       ? ValidationResult.success({ value: port, defaulted: [] })
+   *       : ValidationResult.fail({
+   *           errors: [{ path, key: 'PORT', message: 'must be positive', value: port }],
+   *         }),
+   *   ),
+   * );
+   * ```
+   */
+  override transform<U>(
+    transform: (value: T, path: string) => ScalarValidationResultOrEither<U>,
+  ): ScalarEnvNode<U> {
     return new ScalarEnvNode(this.key, (value, path) =>
-      this.validateValue(value, path).flatMap(transform),
+      recoverScalarValidationResultOrEither(
+        this.validateValue(value, path),
+        path,
+        this.key,
+        value,
+      ).flatMap((val) =>
+        recoverScalarValidationResultOrEither(transform(val, path), path, this.key, value),
+      ),
     );
   }
+}
+
+export type ValidationResultOrEither<T> = ValidationResult<T> | Either<ValidationFailure, T>;
+
+function recoverValidationResultOrEither<T>(
+  result: ValidationResultOrEither<T>,
+): ValidationResult<T> {
+  if (result instanceof EitherBase) {
+    return result.fold(
+      (error) => ValidationResult.fail(error),
+      (success) =>
+        ValidationResult.success({
+          value: success,
+          defaulted: [],
+        }),
+    );
+  }
+
+  return result;
+}
+
+export type ScalarValidationResultOrEither<T> = ValidationResultOrEither<T> | Either<string, T>;
+
+function recoverScalarValidationResultOrEither<T>(
+  result: ScalarValidationResultOrEither<T>,
+  path: string,
+  key: string,
+  value: unknown,
+): ValidationResult<T> {
+  if (result instanceof EitherBase) {
+    return result.fold(
+      (error) =>
+        ValidationResult.fail(
+          typeof error === 'object'
+            ? error
+            : {
+                errors: [
+                  {
+                    path,
+                    key,
+                    message: error,
+                    value,
+                  },
+                ],
+              },
+        ),
+      (success) =>
+        ValidationResult.success({
+          value: success,
+          defaulted: [],
+        }),
+    );
+  }
+
+  return result;
 }
 
 /**

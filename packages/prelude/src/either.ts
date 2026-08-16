@@ -7,7 +7,7 @@ import { isDefined } from './maybe.js';
 // And conversely, xxx implementations in EitherP all look like:
 // new EitherP(this.value.then(e => e.xxx(...)))
 
-abstract class EitherBase<L, R> {
+export abstract class EitherBase<L, R> {
   /**
    * Maps the value of this Either if it is a Right, performs no operation if this is a Left.
    */

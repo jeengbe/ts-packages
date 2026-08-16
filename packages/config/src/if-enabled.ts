@@ -1,6 +1,6 @@
 import type { EnvNode, EnvSpec, ParseEnv } from './ast.js';
 import { env } from './env.js';
-import type { ValidationResult } from './validation.js';
+import { ValidationResult } from './validation.js';
 import { Either } from '@jeengbe/prelude';
 
 type IfEnabled<T> =
@@ -31,23 +31,27 @@ export function ifEnabled<T extends Record<string, EnvSpec>>(
       'enabled',
       env
         .boolean(envVar, defaultEnabled)
-        .transform(
-          (v): ValidationResult<'enabled' | 'disabled'> => Either.right(v ? 'enabled' : 'disabled'),
-        ),
+        .transform<'enabled' | 'disabled'>((v) => Either.right(v ? 'enabled' : 'disabled')),
       {
         enabled: config,
       },
     )
     .transform((value): ValidationResult<IfEnabled<ParseEnv<T>>> => {
       if (value.enabled === 'enabled') {
-        return Either.right({
-          ...value,
-          enabled: true,
+        return ValidationResult.success({
+          value: {
+            ...value,
+            enabled: true,
+          },
+          defaulted: [],
         });
       }
 
-      return Either.right({
-        enabled: false,
+      return ValidationResult.success({
+        value: {
+          enabled: false,
+        },
+        defaulted: [],
       });
     });
 }
