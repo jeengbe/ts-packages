@@ -12,12 +12,12 @@ A monorepo of small, strongly-typed TypeScript packages published to npm and JSR
 
 <!-- packages:start -->
 
-| Package                                | Version                                                                                                 | Description                                                                                                            |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| [`@jeengbe/cache`](packages/cache)     | [![npm](https://img.shields.io/npm/v/@jeengbe/cache)](https://www.npmjs.com/package/@jeengbe/cache)     | A strongly typed TypeScript caching framework that works with any engine, with in-memory and Redis adapters included.  |
-| [`@jeengbe/config`](packages/config)   | [![npm](https://img.shields.io/npm/v/@jeengbe/config)](https://www.npmjs.com/package/@jeengbe/config)   | A declarative, strongly typed schema for parsing and validating environment variables in TypeScript.                   |
-| [`@jeengbe/prelude`](packages/prelude) | [![npm](https://img.shields.io/npm/v/@jeengbe/prelude)](https://www.npmjs.com/package/@jeengbe/prelude) | A small, dependency-free functional programming toolkit for TypeScript.                                                |
-| [`@jeengbe/spiffe`](packages/spiffe)   | [![npm](https://img.shields.io/npm/v/@jeengbe/spiffe)](https://www.npmjs.com/package/@jeengbe/spiffe)   | A TypeScript library for working with SPIFFE workload identities, with optional Google Cloud and KafkaJS integrations. |
+| Package                                | Version                                                                                                 | Description                                                                                                           |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| [`@jeengbe/cache`](packages/cache)     | [![npm](https://img.shields.io/npm/v/@jeengbe/cache)](https://www.npmjs.com/package/@jeengbe/cache)     | A strongly typed TypeScript caching framework that works with any engine, with in-memory and Redis adapters included. |
+| [`@jeengbe/config`](packages/config)   | [![npm](https://img.shields.io/npm/v/@jeengbe/config)](https://www.npmjs.com/package/@jeengbe/config)   | A declarative, strongly typed schema for parsing and validating environment variables in TypeScript.                  |
+| [`@jeengbe/prelude`](packages/prelude) | [![npm](https://img.shields.io/npm/v/@jeengbe/prelude)](https://www.npmjs.com/package/@jeengbe/prelude) | A small, dependency-free functional programming toolkit for TypeScript.                                               |
+| [`@jeengbe/spiffe`](packages/spiffe)   | [![npm](https://img.shields.io/npm/v/@jeengbe/spiffe)](https://www.npmjs.com/package/@jeengbe/spiffe)   | A TypeScript library for working with SPIFFE workload identities.                                                     |
 
 <!-- packages:end -->
 

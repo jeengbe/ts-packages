@@ -5,7 +5,7 @@ import { RedisContainer } from '@testcontainers/redis';
 import assert from 'assert';
 import type { ChainableCommander } from 'ioredis';
 import { Redis, ScanStream } from 'ioredis';
-import { describe, vitest, beforeAll, beforeEach, afterEach, it, expect } from 'vitest';
+import { describe, vitest, beforeAll, beforeEach, it, expect } from 'vitest';
 
 describe('RedisCacheAdapter', () => {
   vitest.setConfig({ testTimeout: 60000, hookTimeout: 60000 });
@@ -30,11 +30,8 @@ describe('RedisCacheAdapter', () => {
 
     return async () => {
       await redis.flushall();
+      vitest.restoreAllMocks();
     };
-  });
-
-  afterEach(() => {
-    vitest.restoreAllMocks();
   });
 
   describe('mget', () => {

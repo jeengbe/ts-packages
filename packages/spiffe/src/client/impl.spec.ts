@@ -6,7 +6,7 @@ import { Code, ConnectError, createRouterTransport } from '@connectrpc/connect';
 import { connectNodeAdapter } from '@connectrpc/connect-node';
 import * as fs from 'fs/promises';
 import * as http2 from 'node:http2';
-import { describe, beforeEach, afterEach, it, Mock, beforeAll, expect, vitest } from 'vitest';
+import { describe, beforeEach, it, Mock, beforeAll, expect, vitest } from 'vitest';
 
 type FetchJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchJWTSVID'];
 type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVID'];
@@ -37,10 +37,10 @@ describe('SpiffeClientImpl', () => {
     });
 
     client = new SpiffeClient(createMockTransport());
-  });
 
-  afterEach(async () => {
-    await client.close();
+    return async () => {
+      await client.close();
+    };
   });
 
   describe('SpiffeJwtClient', () => {
@@ -182,8 +182,6 @@ describe('SpiffeClientImpl', () => {
   });
 });
 
-// Covers socket resolution (createGrpcTransportFromSocket / Http2SessionManager) separately from
-// the behavioral tests above, which use an in-memory transport and never touch a real socket.
 describe('SpiffeClient socket resolution', () => {
   let socketPath: string;
   let socketUri: string;
