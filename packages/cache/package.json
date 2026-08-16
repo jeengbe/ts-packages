@@ -1,15 +1,28 @@
 {
   "name": "@jeengbe/cache",
   "version": "7.0.6",
-  "description": "A strongly typed caching framework that works with any engine.",
+  "description": "A strongly typed TypeScript caching framework that works with any engine, with in-memory and Redis adapters included.",
   "keywords": [
     "cache",
     "caching",
     "framework",
     "in-memory",
-    "redis"
+    "ioredis",
+    "redis",
+    "ttl",
+    "typed",
+    "typescript"
   ],
+  "homepage": "https://github.com/jeengbe/ts-packages/tree/master/packages/cache#readme",
+  "bugs": {
+    "url": "https://github.com/jeengbe/ts-packages/issues"
+  },
   "license": "MIT",
+  "author": {
+    "name": "Jesper Engberg",
+    "email": "jeengbe@gmail.com",
+    "url": "https://github.com/jeengbe"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeengbe/ts-packages.git",
@@ -32,7 +45,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsdown",

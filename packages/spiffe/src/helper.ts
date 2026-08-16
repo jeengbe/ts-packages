@@ -1,7 +1,8 @@
 // oxlint-disable-next-line no-unused-vars -- Used in JSDoc
 import { NoSvidError } from './error.js';
 
-import type { ParsedJwtSvid, SpiffeJwtClient } from './interface.js';
+import { SpiffeClient } from './impl.js';
+import type { ParsedJwtSvid } from './types.js';
 import type { FileHandle } from 'node:fs/promises';
 import { open } from 'node:fs/promises';
 
@@ -11,7 +12,7 @@ import { open } from 'node:fs/promises';
 export class SpiffeHelper implements AsyncDisposable {
   private readonly handles = new Set<JwtSvidDiskHandle>();
 
-  constructor(private readonly spiffe: SpiffeJwtClient) {}
+  constructor(private readonly spiffe: SpiffeClient) {}
 
   /**
    * Ensures that a JWT-SVID is available on disk at the given path. An error will be thrown if the file
@@ -82,7 +83,7 @@ export class JwtSvidDiskHandle implements AsyncDisposable {
     private readonly audience: string,
     private readonly hint: string | undefined,
     private readonly fileHandle: FileHandle,
-    private readonly spiffe: SpiffeJwtClient,
+    private readonly spiffe: SpiffeClient,
   ) {}
 
   async start(initialSvid: ParsedJwtSvid): Promise<void> {

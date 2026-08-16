@@ -1,34 +1,26 @@
 import { NoSvidError } from './error.js';
+import { SpiffeWorkloadAPI } from './proto/workloadapi_pb.js';
 import type {
   JwtSvid,
   ParsedJwtSvid,
   SpiffeClientRetryOptions,
-  SpiffeJwtClient,
   ValidatedJwtSvid,
-} from './interface.js';
-import { SpiffeWorkloadAPI } from './proto/workloadapi_pb.js';
-import type { Client, Interceptor } from '@connectrpc/connect';
+} from './types.js';
+import type { Client, Transport } from '@connectrpc/connect';
 import { Code, ConnectError, createClient } from '@connectrpc/connect';
-import type { GrpcTransportOptions } from '@connectrpc/connect-node';
 import { createGrpcTransport, Http2SessionManager } from '@connectrpc/connect-node';
 import { TTLCache } from '@isaacs/ttlcache';
 import { connect as netConnect } from 'net';
 import { setTimeout } from 'timers/promises';
 
-const workloadApiHeaderInterceptor: Interceptor = (next) => (req) => {
-  req.header.set('workload.spiffe.io', 'true');
-  return next(req);
-};
-
 /**
  * The SPIFFE Client provides convenience APIs for interacting with the SPIFFE Workload API.
  */
-export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
+export class SpiffeClient implements AsyncDisposable {
   private readonly jwtSvidCache = new TTLCache<string, ParsedJwtSvid>();
   private readonly jwtSvidsInFlight = new Map<string, Promise<readonly JwtSvid[]>>();
 
   private readonly abortController = new AbortController();
-  private readonly sessionManager: Http2SessionManager;
   private readonly api: Client<typeof SpiffeWorkloadAPI>;
 
   /**
@@ -43,35 +35,47 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   constructor(socket?: string, retryOptions?: SpiffeClientRetryOptions);
 
   /**
-   * Constructs a SPIFFE Client instance with the given gRPC transport options.
+   * Constructs a SPIFFE Client instance with the given gRPC transport.
    *
    * (Do not forget to set the `workload.spiffe.io` gRPC metadata to `true` in the options.)
    *
    * @see https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Workload_Endpoint.md
    */
-  constructor(options: GrpcTransportOptions, retryOptions?: SpiffeClientRetryOptions);
+  constructor(transport: Transport, retryOptions?: SpiffeClientRetryOptions);
 
   constructor(
-    socketOrOptions?: string | GrpcTransportOptions,
+    socketOrTransport?: string | Transport,
     private readonly retryOptions: SpiffeClientRetryOptions = {},
   ) {
-    const options = resolveTransportOptions(socketOrOptions);
-
-    this.sessionManager = new Http2SessionManager(options.baseUrl, undefined, options.nodeOptions);
-
-    const transport = createGrpcTransport({
-      ...options,
-      sessionManager: this.sessionManager,
-      interceptors: [workloadApiHeaderInterceptor, ...(options.interceptors ?? [])],
-    });
-
-    this.api = createClient(SpiffeWorkloadAPI, transport);
+    this.api = createClient(SpiffeWorkloadAPI, resolveGrpcTransport(socketOrTransport));
   }
 
+  /**
+   * Fetches a JWT-SVID for the specified audience and returns the JWT string.
+   * If the workload is entitled to multiple SVIDs, the first one returned by the
+   * Workload API is used.
+   *
+   * @example
+   *
+   * ```ts
+   * const token = await spiffe.getJwt(['orders-api']);
+   *
+   * await fetch(url, {
+   *   headers: { authorization: `Bearer ${token}` },
+   * });
+   * ```
+   *
+   * @throws {NoSvidError} if the API returns no SVIDs for the specified filter.
+   */
   async getJwt(audience: string | readonly string[], hint?: string): Promise<string> {
     return (await this.getJwtSvid(audience, hint)).token;
   }
 
+  /**
+   * Fetches a JWT-SVID for the specified audience and returns the SVID.
+   *
+   * @throws {NoSvidError} if the API returns no SVIDs for the specified filter.
+   */
   async getJwtSvid(audience: string | readonly string[], hint?: string): Promise<ParsedJwtSvid> {
     const aud = typeof audience === 'string' ? [audience] : audience;
     const cacheKey = [aud.join('|'), hint ?? ''].join(':');
@@ -112,7 +116,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     let inFlight = this.jwtSvidsInFlight.get(cacheKey);
 
     if (!inFlight) {
-      inFlight = this.#listJwtSvids(audience, hint).finally(() => {
+      inFlight = this._listJwtSvids(audience, hint).finally(() => {
         this.jwtSvidsInFlight.delete(cacheKey);
       });
       this.jwtSvidsInFlight.set(cacheKey, inFlight);
@@ -121,7 +125,10 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     return await inFlight;
   }
 
-  async #listJwtSvids(audience: readonly string[], hint?: string): Promise<readonly JwtSvid[]> {
+  private async _listJwtSvids(
+    audience: readonly string[],
+    hint?: string,
+  ): Promise<readonly JwtSvid[]> {
     const { maxAttempts = 6, initialDelayMs = 1_000, maxDelayMs = 30_000 } = this.retryOptions;
 
     let lastRetriableErr: ConnectError | undefined;
@@ -171,6 +178,10 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     throw lastRetriableErr!;
   }
 
+  /**
+   * Validates a JWT-SVID and returns the validated payload if accepted, or null if
+   * the token is malformed or not untrusted.
+   */
   async validateJwt(expectedAudience: string, token: string): Promise<ValidatedJwtSvid | null> {
     let res;
     try {
@@ -201,7 +212,6 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
 
   async close(): Promise<void> {
     this.abortController.abort();
-    this.sessionManager.abort();
   }
 }
 
@@ -219,36 +229,39 @@ function getJwtExpMs(token: string): number {
   return parsedPayload.exp * 1000;
 }
 
-function resolveTransportOptions(
-  socketOrOptions?: string | GrpcTransportOptions,
-): GrpcTransportOptions {
-  if (typeof socketOrOptions === 'object') {
-    return socketOrOptions;
+function resolveGrpcTransport(socketOrTransport?: string | Transport): Transport {
+  if (typeof socketOrTransport === 'object') {
+    return socketOrTransport;
   }
 
+  return createGrpcTransportFromSocket(socketOrTransport);
+}
+
+function createGrpcTransportFromSocket(socketOrTransport?: string): Transport {
   const socket =
-    socketOrOptions ??
+    socketOrTransport ??
     process.env['SPIFFE_ENDPOINT_SOCKET'] ??
     'unix:///tmp/spire-agent/public/api.sock';
 
-  return parseSocket(socket);
-}
+  if (!socket.startsWith('unix://')) {
+    throw new Error(`Unsupported socket format: ${socket}. Only unix:// is supported.`);
+  }
 
-function parseSocket(socket: string): GrpcTransportOptions {
-  if (socket.startsWith('unix://')) {
-    const path = socket.slice('unix://'.length);
+  const path = socket.slice('unix://'.length);
 
-    return {
-      baseUrl: 'http://localhost',
-      nodeOptions: {
-        createConnection: () => netConnect(path),
+  // https://github.com/connectrpc/connect-es/issues/756#issuecomment-1700864148
+  const sessionManager = new Http2SessionManager('http://localhost:0', undefined, {
+    createConnection: () => netConnect(path),
+  });
+
+  return createGrpcTransport({
+    baseUrl: 'http://localhost:0',
+    sessionManager,
+    interceptors: [
+      (next) => (req) => {
+        req.header.set('workload.spiffe.io', 'true');
+        return next(req);
       },
-    };
-  }
-
-  if (socket.startsWith('tcp://')) {
-    return { baseUrl: `http://${socket.slice('tcp://'.length)}` };
-  }
-
-  throw new Error(`Unsupported SPIFFE endpoint socket: ${socket}`);
+    ],
+  });
 }

@@ -1,5 +1,4 @@
 import { SpiffeClient } from './impl.js';
-import type { SpiffeJwtClient } from './interface.js';
 import type { OauthbearerProviderResponse, SASLOptions } from 'kafkajs';
 import type { Middleware } from 'mappersmith';
 
@@ -12,7 +11,7 @@ export function createKafkajsAuthMiddleware(
   audience: string,
   headers?: Record<string, string>,
   hint?: string,
-  spiffe: SpiffeJwtClient | (() => SpiffeJwtClient) = () => new SpiffeClient(),
+  spiffe: SpiffeClient | (() => SpiffeClient) = () => new SpiffeClient(),
 ): Middleware {
   const spiffeClient = typeof spiffe === 'function' ? spiffe() : spiffe;
 
@@ -35,7 +34,7 @@ export function createKafkajsSaslMechanism(
   audience: string,
   extensions?: Record<string, string>,
   hint?: string,
-  spiffe: SpiffeJwtClient | (() => SpiffeJwtClient) = () => new SpiffeClient(),
+  spiffe: SpiffeClient | (() => SpiffeClient) = () => new SpiffeClient(),
 ): SASLOptions {
   const spiffeClient = typeof spiffe === 'function' ? spiffe() : spiffe;
 

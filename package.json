@@ -1,11 +1,13 @@
 {
   "name": "ts-env",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "sideEffects": false,
   "scripts": {
     "build": "pnpm -r run build",
     "changeset": "changeset",
+    "docs:packages": "node scripts/generate-readme-packages.ts && oxfmt --write README.md",
     "lint": "oxlint --fix . && oxfmt --write .",
     "lint:readonly": "oxlint . && oxfmt --check .",
     "release": "pnpm run build && changeset publish",

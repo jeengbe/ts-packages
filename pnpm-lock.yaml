@@ -238,6 +238,21 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  scripts:
+    devDependencies:
+      '@jeengbe/scaffolding':
+        specifier: workspace:*
+        version: link:../scaffolding
+      oxfmt:
+        specifier: 'catalog:'
+        version: 0.60.0
+      oxlint:
+        specifier: 'catalog:'
+        version: 1.75.0(oxlint-tsgolint@7.0.2001)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
 packages:
 
   '@andrewbranch/untar.js@1.0.3':

@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - scaffolding
+  - scripts
 
 catalog:
   oxfmt: ^0.60.0

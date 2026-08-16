@@ -1,5 +1,4 @@
 import { SpiffeClient } from './impl.js';
-import type { SpiffeJwtClient } from './interface.js';
 import assert from 'assert';
 import * as fs from 'fs/promises';
 import type {
@@ -13,10 +12,10 @@ import os from 'os';
 import * as path from 'path';
 
 export class SpiffeJwtGoogleSubjectTokenSupplier implements SubjectTokenSupplier {
-  #spiffeClient?: SpiffeJwtClient;
+  #spiffeClient?: SpiffeClient;
 
   constructor(
-    private readonly spiffe: SpiffeJwtClient | (() => SpiffeJwtClient) = () => new SpiffeClient(),
+    private readonly spiffe: SpiffeClient | (() => SpiffeClient) = () => new SpiffeClient(),
     private readonly hint?: string,
   ) {}
 
@@ -75,7 +74,7 @@ export class SpiffeJwtGoogleSubjectTokenSupplier implements SubjectTokenSupplier
  * ```
  */
 export async function maybeCreateGoogleAuthFromSpiffeAdc(
-  spiffe: SpiffeJwtClient | (() => SpiffeJwtClient) = () => new SpiffeClient(),
+  spiffe: SpiffeClient | (() => SpiffeClient) = () => new SpiffeClient(),
   googleAuthOptions?: Omit<GoogleAuthOptions, 'credentials'>,
 ): Promise<GoogleAuthOptions | undefined> {
   const adcFileContent = await getAdcFileContent();

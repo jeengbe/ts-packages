@@ -1,7 +1,27 @@
 {
   "name": "@jeengbe/prelude",
   "version": "0.0.5",
+  "description": "A small, dependency-free functional programming toolkit for TypeScript.",
+  "keywords": [
+    "either",
+    "fp",
+    "functional-programming",
+    "maybe",
+    "monad",
+    "option",
+    "result",
+    "typescript"
+  ],
+  "homepage": "https://github.com/jeengbe/ts-packages/tree/master/packages/prelude#readme",
+  "bugs": {
+    "url": "https://github.com/jeengbe/ts-packages/issues"
+  },
   "license": "MIT",
+  "author": {
+    "name": "Jesper Engberg",
+    "email": "jeengbe@gmail.com",
+    "url": "https://github.com/jeengbe"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeengbe/ts-packages.git",
@@ -24,7 +44,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsdown",

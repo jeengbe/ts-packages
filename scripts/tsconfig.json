@@ -1,0 +1,7 @@
+{
+  "extends": "@jeengbe/scaffolding/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "${configDir}"
+  },
+  "include": ["${configDir}/**/*"]
+}

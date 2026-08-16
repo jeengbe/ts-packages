@@ -1,16 +1,31 @@
 {
   "name": "@jeengbe/spiffe",
   "version": "0.6.6",
-  "description": "A TypeScript library for working with SPIFFE workload identities.",
+  "description": "A TypeScript library for working with SPIFFE workload identities, with optional Google Cloud and KafkaJS integrations.",
   "keywords": [
+    "Google Cloud",
     "JWT",
+    "KafkaJS",
     "SPIFFE",
     "SPIRE",
     "SVID",
+    "TypeScript",
     "Workload Identity",
-    "X.509"
+    "Workload Identity Federation",
+    "X.509",
+    "Zero Trust",
+    "mTLS"
   ],
+  "homepage": "https://github.com/jeengbe/ts-packages/tree/master/packages/spiffe#readme",
+  "bugs": {
+    "url": "https://github.com/jeengbe/ts-packages/issues"
+  },
   "license": "MIT",
+  "author": {
+    "name": "Jesper Engberg",
+    "email": "jeengbe@gmail.com",
+    "url": "https://github.com/jeengbe"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeengbe/ts-packages.git",
@@ -41,7 +56,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsdown",
