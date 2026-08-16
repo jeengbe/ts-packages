@@ -1,5 +1,11 @@
 # @jeengbe/cache
 
+## 7.0.7
+
+### Patch Changes
+
+- [`30bd19f`](https://github.com/jeengbe/ts-packages/commit/30bd19f127a06c0120c512969dc0d8d1d36c3453) - fix: more package metadata
+
 ## 7.0.6
 
 ### Patch Changes

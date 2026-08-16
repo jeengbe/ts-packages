@@ -1,6 +1,6 @@
 {
   "name": "@jeengbe/cache",
-  "version": "7.0.6",
+  "version": "7.0.7",
   "description": "A strongly typed TypeScript caching framework that works with any engine, with in-memory and Redis adapters included.",
   "keywords": [
     "cache",

@@ -1,5 +1,16 @@
 # @jeengbe/config
 
+## 0.0.6
+
+### Patch Changes
+
+- [`30bd19f`](https://github.com/jeengbe/ts-packages/commit/30bd19f127a06c0120c512969dc0d8d1d36c3453) - fix: more package metadata
+
+- [`f832e52`](https://github.com/jeengbe/ts-packages/commit/f832e52a6b52121aa8e6bfea4899137b1d8ed024) - fix: omit 'enabled' prop from IfEnabled T type
+
+- Updated dependencies [[`30bd19f`](https://github.com/jeengbe/ts-packages/commit/30bd19f127a06c0120c512969dc0d8d1d36c3453), [`f832e52`](https://github.com/jeengbe/ts-packages/commit/f832e52a6b52121aa8e6bfea4899137b1d8ed024)]:
+  - @jeengbe/prelude@0.1.0
+
 ## 0.0.5
 
 ### Patch Changes
