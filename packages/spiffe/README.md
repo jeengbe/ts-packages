@@ -14,7 +14,7 @@ This package provides convenient helpers for integrating SPIFFE workload identit
 
 ## Installation
 
-The package is published as `@jeengbe/spiffe`. Versions follow Semantic Versioning.
+The package is published to [npm](https://www.npmjs.com/package/@jeengbe/spiffe) and [JSR](https://jsr.io/@jeengbe/spiffe) as `@jeengbe/spiffe`. Versions follow Semantic Versioning.
 
 ## Usage
 

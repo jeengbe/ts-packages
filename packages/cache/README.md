@@ -18,7 +18,7 @@ Values are serialized to string for storage in the cache. By default, `JSON.stri
 
 ## Installation
 
-The package is published as `@jeengbe/cache`. Versions follow Semantic Versioning.
+The package is published to [npm](https://www.npmjs.com/package/@jeengbe/cache) and [JSR](https://jsr.io/@jeengbe/cache) as `@jeengbe/cache`. Versions follow Semantic Versioning.
 
 ## Gotta go fast, no time to read
 
