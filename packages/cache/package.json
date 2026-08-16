@@ -17,37 +17,34 @@
   "bugs": {
     "url": "https://github.com/jeengbe/ts-packages/issues"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeengbe/ts-packages.git",
+    "directory": "packages/cache"
+  },
   "license": "MIT",
   "author": {
     "name": "Jesper Engberg",
     "email": "jeengbe@gmail.com",
     "url": "https://github.com/jeengbe"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jeengbe/ts-packages.git",
-    "directory": "packages/cache"
-  },
-  "files": [
-    "dist",
-    "src",
-    "!src/**/*.spec.ts",
-    "!src/__snapshots__/*"
-  ],
-  "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.mjs",
-  "typings": "./dist/index.d.mts",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
       "default": "./dist/index.mjs"
     }
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
+  "main": "./dist/index.mjs",
+  "typings": "./dist/index.d.mts",
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.spec.ts",
+    "!src/__snapshots__/*",
+    "!src/**/fake.ts"
+  ],
   "scripts": {
     "build": "tsdown",
     "lint": "oxlint --fix . && oxfmt --write .",
@@ -80,5 +77,9 @@
     "micromatch": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

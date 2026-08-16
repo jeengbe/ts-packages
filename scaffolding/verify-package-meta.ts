@@ -63,7 +63,7 @@ async function syncPackageJsonToJsr(
     ),
     publish: {
       include: ['src', 'README.md', 'LICENSE'],
-      exclude: ['src/**/*.spec.ts', 'src/__snapshots__/*'],
+      exclude: ['src/**/*.spec.ts', 'src/__snapshots__/*', 'src/**/fake.ts'],
     },
   };
 
@@ -91,11 +91,12 @@ function createPackageJsonSchema(packageDir: URL) {
         .array(z.string())
         .refine(
           (files) =>
-            ['dist', 'src', '!src/**/*.spec.ts', '!src/__snapshots__/*'].every((file) =>
-              files.includes(file),
+            ['dist', 'src', '!src/**/*.spec.ts', '!src/__snapshots__/*', '!src/**/fake.ts'].every(
+              (file) => files.includes(file),
             ),
           {
-            message: 'files must include dist, src, !src/**/*.spec.ts, and !src/__snapshots__/*',
+            message:
+              'files must include dist, src, !src/**/*.spec.ts, !src/__snapshots__/*, and !src/**/fake.ts',
           },
         ),
       main: z.literal('./dist/index.mjs'),

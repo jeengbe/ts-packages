@@ -1,8 +1,8 @@
+import { SpiffeWorkloadAPI } from '../proto/workloadapi_pb.js';
 import { NoSvidError } from './error.js';
 import { SpiffeClient } from './impl.js';
-import { SpiffeWorkloadAPI } from './proto/workloadapi_pb.js';
 import type { ConnectRouter, ServiceImpl } from '@connectrpc/connect';
-import { Code, ConnectError } from '@connectrpc/connect';
+import { Code, ConnectError, createRouterTransport } from '@connectrpc/connect';
 import { connectNodeAdapter } from '@connectrpc/connect-node';
 import * as fs from 'fs/promises';
 import * as http2 from 'node:http2';
@@ -12,49 +12,21 @@ type FetchJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchJWTSVID'];
 type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVID'];
 
 describe('SpiffeClientImpl', () => {
-  let socketPath: string;
-  let socketUri: string;
   let fetchJWTSVID: Mock<FetchJWTSVIDImpl>;
   let validateJWTSVID: Mock<ValidateJWTSVIDImpl>;
   let client: SpiffeClient;
 
-  beforeAll(async () => {
-    socketPath = `${await fs.mkdtemp('/tmp/spiffe-client-test-')}/socket.sock`;
-    socketUri = `unix://${socketPath}`;
-
-    const server = http2.createServer(
-      connectNodeAdapter({
-        routes: (router: ConnectRouter) => {
-          router.service(SpiffeWorkloadAPI, {
-            fetchJWTSVID: (req, ctx) => fetchJWTSVID(req, ctx),
-            validateJWTSVID: (req, ctx) => validateJWTSVID(req, ctx),
-          });
-        },
-      }),
-    );
-
-    await new Promise<void>((resolve, reject) => {
-      server.listen(socketPath, (err?: Error) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
+  // In-memory transport routed straight to the mocks above, no real socket involved. Retry
+  // tests need their own client (different retryOptions) wired to the same mocks, hence a helper
+  // rather than a single transport built once.
+  function createMockTransport() {
+    return createRouterTransport((router: ConnectRouter) => {
+      router.service(SpiffeWorkloadAPI, {
+        fetchJWTSVID: (req, ctx) => fetchJWTSVID(req, ctx),
+        validateJWTSVID: (req, ctx) => validateJWTSVID(req, ctx),
       });
     });
-
-    return async () => {
-      await new Promise<void>((resolve, reject) => {
-        server.close((err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-    };
-  });
+  }
 
   beforeEach(() => {
     fetchJWTSVID = vitest.fn<FetchJWTSVIDImpl>(() => {
@@ -64,7 +36,7 @@ describe('SpiffeClientImpl', () => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
 
-    client = new SpiffeClient(socketUri);
+    client = new SpiffeClient(createMockTransport());
   });
 
   afterEach(async () => {
@@ -176,7 +148,7 @@ describe('SpiffeClientImpl', () => {
           throw new ConnectError('Permission denied', Code.PermissionDenied);
         });
 
-        await using fastClient = new SpiffeClient(socketUri, {
+        await using fastClient = new SpiffeClient(createMockTransport(), {
           maxAttempts: 2,
           initialDelayMs: 1,
           maxDelayMs: 1,
@@ -207,5 +179,82 @@ describe('SpiffeClientImpl', () => {
         });
       });
     });
+  });
+});
+
+// Covers socket resolution (createGrpcTransportFromSocket / Http2SessionManager) separately from
+// the behavioral tests above, which use an in-memory transport and never touch a real socket.
+describe('SpiffeClient socket resolution', () => {
+  let socketPath: string;
+  let socketUri: string;
+  let fetchJWTSVID: Mock<FetchJWTSVIDImpl>;
+
+  beforeAll(async () => {
+    socketPath = `${await fs.mkdtemp('/tmp/spiffe-client-test-')}/socket.sock`;
+    socketUri = `unix://${socketPath}`;
+
+    const server = http2.createServer(
+      connectNodeAdapter({
+        routes: (router: ConnectRouter) => {
+          router.service(SpiffeWorkloadAPI, {
+            fetchJWTSVID: (req, ctx) => fetchJWTSVID(req, ctx),
+            validateJWTSVID: () => {
+              throw new ConnectError('Not implemented', Code.Unimplemented);
+            },
+          });
+        },
+      }),
+    );
+
+    await new Promise<void>((resolve, reject) => {
+      server.listen(socketPath, (err?: Error) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    return async () => {
+      await new Promise<void>((resolve, reject) => {
+        server.close((err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+    };
+  });
+
+  beforeEach(() => {
+    fetchJWTSVID = vitest.fn<FetchJWTSVIDImpl>(() => {
+      throw new ConnectError('Not implemented', Code.Unimplemented);
+    });
+  });
+
+  it('should connect over a unix:// socket and fetch a JWT SVID', async () => {
+    const fakeJwt = `1.${Buffer.from(
+      JSON.stringify({
+        exp: Math.floor(Date.now() / 1000) + 10 * 60, // 10 minutes in the future
+      }),
+      'utf-8',
+    ).toString('base64url')}.`;
+
+    fetchJWTSVID.mockImplementationOnce(() => ({
+      svids: [
+        {
+          spiffeId: 'spiffe://example.org/test',
+          svid: fakeJwt,
+          hint: '',
+        },
+      ],
+    }));
+
+    await using client = new SpiffeClient(socketUri);
+
+    expect(await client.getJwt('test-audience')).toBe(fakeJwt);
   });
 });

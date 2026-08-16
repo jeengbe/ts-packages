@@ -2,18 +2,16 @@
 // @generated from file workloadapi.proto (syntax proto3)
 /* eslint-disable */
 
-import type { JsonObject, Message } from '@bufbuild/protobuf';
-import type { GenFile, GenMessage, GenService } from '@bufbuild/protobuf/codegenv2';
-import { fileDesc, messageDesc, serviceDesc } from '@bufbuild/protobuf/codegenv2';
-import { file_google_protobuf_struct } from '@bufbuild/protobuf/wkt';
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file workloadapi.proto.
  */
-export const file_workloadapi: GenFile /*@__PURE__*/ = fileDesc(
-  'ChF3b3JrbG9hZGFwaS5wcm90byIRCg9YNTA5U1ZJRFJlcXVlc3QitgEKEFg1MDlTVklEUmVzcG9uc2USGAoFc3ZpZHMYASADKAsyCS5YNTA5U1ZJRBILCgNjcmwYAiADKAwSQgoRZmVkZXJhdGVkX2J1bmRsZXMYAyADKAsyJy5YNTA5U1ZJRFJlc3BvbnNlLkZlZGVyYXRlZEJ1bmRsZXNFbnRyeRo3ChVGZWRlcmF0ZWRCdW5kbGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgMOgI4ASJlCghYNTA5U1ZJRBIRCglzcGlmZmVfaWQYASABKAkSEQoJeDUwOV9zdmlkGAIgASgMEhUKDXg1MDlfc3ZpZF9rZXkYAyABKAwSDgoGYnVuZGxlGAQgASgMEgwKBGhpbnQYBSABKAkiFAoSWDUwOUJ1bmRsZXNSZXF1ZXN0IoYBChNYNTA5QnVuZGxlc1Jlc3BvbnNlEgsKA2NybBgBIAMoDBIyCgdidW5kbGVzGAIgAygLMiEuWDUwOUJ1bmRsZXNSZXNwb25zZS5CdW5kbGVzRW50cnkaLgoMQnVuZGxlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoDDoCOAEiNQoOSldUU1ZJRFJlcXVlc3QSEAoIYXVkaWVuY2UYASADKAkSEQoJc3BpZmZlX2lkGAIgASgJIioKD0pXVFNWSURSZXNwb25zZRIXCgVzdmlkcxgBIAMoCzIILkpXVFNWSUQiOAoHSldUU1ZJRBIRCglzcGlmZmVfaWQYASABKAkSDAoEc3ZpZBgCIAEoCRIMCgRoaW50GAMgASgJIhMKEUpXVEJ1bmRsZXNSZXF1ZXN0IncKEkpXVEJ1bmRsZXNSZXNwb25zZRIxCgdidW5kbGVzGAEgAygLMiAuSldUQnVuZGxlc1Jlc3BvbnNlLkJ1bmRsZXNFbnRyeRouCgxCdW5kbGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgMOgI4ASI4ChZWYWxpZGF0ZUpXVFNWSURSZXF1ZXN0EhAKCGF1ZGllbmNlGAEgASgJEgwKBHN2aWQYAiABKAkiVQoXVmFsaWRhdGVKV1RTVklEUmVzcG9uc2USEQoJc3BpZmZlX2lkGAEgASgJEicKBmNsYWltcxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QywwIKEVNwaWZmZVdvcmtsb2FkQVBJEjYKDUZldGNoWDUwOVNWSUQSEC5YNTA5U1ZJRFJlcXVlc3QaES5YNTA5U1ZJRFJlc3BvbnNlMAESPwoQRmV0Y2hYNTA5QnVuZGxlcxITLlg1MDlCdW5kbGVzUmVxdWVzdBoULlg1MDlCdW5kbGVzUmVzcG9uc2UwARIxCgxGZXRjaEpXVFNWSUQSDy5KV1RTVklEUmVxdWVzdBoQLkpXVFNWSURSZXNwb25zZRI8Cg9GZXRjaEpXVEJ1bmRsZXMSEi5KV1RCdW5kbGVzUmVxdWVzdBoTLkpXVEJ1bmRsZXNSZXNwb25zZTABEkQKD1ZhbGlkYXRlSldUU1ZJRBIXLlZhbGlkYXRlSldUU1ZJRFJlcXVlc3QaGC5WYWxpZGF0ZUpXVFNWSURSZXNwb25zZWIGcHJvdG8z',
-  [file_google_protobuf_struct],
-);
+export const file_workloadapi: GenFile = /*@__PURE__*/
+  fileDesc("ChF3b3JrbG9hZGFwaS5wcm90byIRCg9YNTA5U1ZJRFJlcXVlc3QitgEKEFg1MDlTVklEUmVzcG9uc2USGAoFc3ZpZHMYASADKAsyCS5YNTA5U1ZJRBILCgNjcmwYAiADKAwSQgoRZmVkZXJhdGVkX2J1bmRsZXMYAyADKAsyJy5YNTA5U1ZJRFJlc3BvbnNlLkZlZGVyYXRlZEJ1bmRsZXNFbnRyeRo3ChVGZWRlcmF0ZWRCdW5kbGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgMOgI4ASJlCghYNTA5U1ZJRBIRCglzcGlmZmVfaWQYASABKAkSEQoJeDUwOV9zdmlkGAIgASgMEhUKDXg1MDlfc3ZpZF9rZXkYAyABKAwSDgoGYnVuZGxlGAQgASgMEgwKBGhpbnQYBSABKAkiFAoSWDUwOUJ1bmRsZXNSZXF1ZXN0IoYBChNYNTA5QnVuZGxlc1Jlc3BvbnNlEgsKA2NybBgBIAMoDBIyCgdidW5kbGVzGAIgAygLMiEuWDUwOUJ1bmRsZXNSZXNwb25zZS5CdW5kbGVzRW50cnkaLgoMQnVuZGxlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoDDoCOAEiNQoOSldUU1ZJRFJlcXVlc3QSEAoIYXVkaWVuY2UYASADKAkSEQoJc3BpZmZlX2lkGAIgASgJIioKD0pXVFNWSURSZXNwb25zZRIXCgVzdmlkcxgBIAMoCzIILkpXVFNWSUQiOAoHSldUU1ZJRBIRCglzcGlmZmVfaWQYASABKAkSDAoEc3ZpZBgCIAEoCRIMCgRoaW50GAMgASgJIhMKEUpXVEJ1bmRsZXNSZXF1ZXN0IncKEkpXVEJ1bmRsZXNSZXNwb25zZRIxCgdidW5kbGVzGAEgAygLMiAuSldUQnVuZGxlc1Jlc3BvbnNlLkJ1bmRsZXNFbnRyeRouCgxCdW5kbGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgMOgI4ASI4ChZWYWxpZGF0ZUpXVFNWSURSZXF1ZXN0EhAKCGF1ZGllbmNlGAEgASgJEgwKBHN2aWQYAiABKAkiVQoXVmFsaWRhdGVKV1RTVklEUmVzcG9uc2USEQoJc3BpZmZlX2lkGAEgASgJEicKBmNsYWltcxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QywwIKEVNwaWZmZVdvcmtsb2FkQVBJEjYKDUZldGNoWDUwOVNWSUQSEC5YNTA5U1ZJRFJlcXVlc3QaES5YNTA5U1ZJRFJlc3BvbnNlMAESPwoQRmV0Y2hYNTA5QnVuZGxlcxITLlg1MDlCdW5kbGVzUmVxdWVzdBoULlg1MDlCdW5kbGVzUmVzcG9uc2UwARIxCgxGZXRjaEpXVFNWSUQSDy5KV1RTVklEUmVxdWVzdBoQLkpXVFNWSURSZXNwb25zZRI8Cg9GZXRjaEpXVEJ1bmRsZXMSEi5KV1RCdW5kbGVzUmVxdWVzdBoTLkpXVEJ1bmRsZXNSZXNwb25zZTABEkQKD1ZhbGlkYXRlSldUU1ZJRBIXLlZhbGlkYXRlSldUU1ZJRFJlcXVlc3QaGC5WYWxpZGF0ZUpXVFNWSURSZXNwb25zZWIGcHJvdG8z", [file_google_protobuf_struct]);
 
 /**
  * The X509SVIDRequest message conveys parameters for requesting an X.509-SVID.
@@ -21,16 +19,15 @@ export const file_workloadapi: GenFile /*@__PURE__*/ = fileDesc(
  *
  * @generated from message X509SVIDRequest
  */
-export type X509SVIDRequest = Message<'X509SVIDRequest'> & {};
+export type X509SVIDRequest = Message<"X509SVIDRequest"> & {
+};
 
 /**
  * Describes the message X509SVIDRequest.
  * Use `create(X509SVIDRequestSchema)` to create a new message.
  */
-export const X509SVIDRequestSchema: GenMessage<X509SVIDRequest> /*@__PURE__*/ = messageDesc(
-  file_workloadapi,
-  0,
-);
+export const X509SVIDRequestSchema: GenMessage<X509SVIDRequest> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 0);
 
 /**
  * The X509SVIDResponse message carries X.509-SVIDs and related information,
@@ -39,7 +36,7 @@ export const X509SVIDRequestSchema: GenMessage<X509SVIDRequest> /*@__PURE__*/ = 
  *
  * @generated from message X509SVIDResponse
  */
-export type X509SVIDResponse = Message<'X509SVIDResponse'> & {
+export type X509SVIDResponse = Message<"X509SVIDResponse"> & {
   /**
    * Required. A list of X509SVID messages, each of which includes a single
    * X.509-SVID, its private key, and the bundle for the trust domain.
@@ -69,10 +66,8 @@ export type X509SVIDResponse = Message<'X509SVIDResponse'> & {
  * Describes the message X509SVIDResponse.
  * Use `create(X509SVIDResponseSchema)` to create a new message.
  */
-export const X509SVIDResponseSchema: GenMessage<X509SVIDResponse> /*@__PURE__*/ = messageDesc(
-  file_workloadapi,
-  1,
-);
+export const X509SVIDResponseSchema: GenMessage<X509SVIDResponse> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 1);
 
 /**
  * The X509SVID message carries a single SVID and all associated information,
@@ -80,7 +75,7 @@ export const X509SVIDResponseSchema: GenMessage<X509SVIDResponse> /*@__PURE__*/ 
  *
  * @generated from message X509SVID
  */
-export type X509SVID = Message<'X509SVID'> & {
+export type X509SVID = Message<"X509SVID"> & {
   /**
    * Required. The SPIFFE ID of the SVID in this entry
    *
@@ -125,7 +120,8 @@ export type X509SVID = Message<'X509SVID'> & {
  * Describes the message X509SVID.
  * Use `create(X509SVIDSchema)` to create a new message.
  */
-export const X509SVIDSchema: GenMessage<X509SVID> /*@__PURE__*/ = messageDesc(file_workloadapi, 2);
+export const X509SVIDSchema: GenMessage<X509SVID> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 2);
 
 /**
  * The X509BundlesRequest message conveys parameters for requesting X.509
@@ -133,16 +129,15 @@ export const X509SVIDSchema: GenMessage<X509SVID> /*@__PURE__*/ = messageDesc(fi
  *
  * @generated from message X509BundlesRequest
  */
-export type X509BundlesRequest = Message<'X509BundlesRequest'> & {};
+export type X509BundlesRequest = Message<"X509BundlesRequest"> & {
+};
 
 /**
  * Describes the message X509BundlesRequest.
  * Use `create(X509BundlesRequestSchema)` to create a new message.
  */
-export const X509BundlesRequestSchema: GenMessage<X509BundlesRequest> /*@__PURE__*/ = messageDesc(
-  file_workloadapi,
-  3,
-);
+export const X509BundlesRequestSchema: GenMessage<X509BundlesRequest> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 3);
 
 /**
  * The X509BundlesResponse message carries a set of global CRLs and a map of
@@ -150,7 +145,7 @@ export const X509BundlesRequestSchema: GenMessage<X509BundlesRequest> /*@__PURE_
  *
  * @generated from message X509BundlesResponse
  */
-export type X509BundlesResponse = Message<'X509BundlesResponse'> & {
+export type X509BundlesResponse = Message<"X509BundlesResponse"> & {
   /**
    * Optional. ASN.1 DER encoded certificate revocation lists.
    *
@@ -172,15 +167,13 @@ export type X509BundlesResponse = Message<'X509BundlesResponse'> & {
  * Describes the message X509BundlesResponse.
  * Use `create(X509BundlesResponseSchema)` to create a new message.
  */
-export const X509BundlesResponseSchema: GenMessage<X509BundlesResponse> /*@__PURE__*/ = messageDesc(
-  file_workloadapi,
-  4,
-);
+export const X509BundlesResponseSchema: GenMessage<X509BundlesResponse> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 4);
 
 /**
  * @generated from message JWTSVIDRequest
  */
-export type JWTSVIDRequest = Message<'JWTSVIDRequest'> & {
+export type JWTSVIDRequest = Message<"JWTSVIDRequest"> & {
   /**
    * Required. The audience(s) the workload intends to authenticate against.
    *
@@ -201,17 +194,15 @@ export type JWTSVIDRequest = Message<'JWTSVIDRequest'> & {
  * Describes the message JWTSVIDRequest.
  * Use `create(JWTSVIDRequestSchema)` to create a new message.
  */
-export const JWTSVIDRequestSchema: GenMessage<JWTSVIDRequest> /*@__PURE__*/ = messageDesc(
-  file_workloadapi,
-  5,
-);
+export const JWTSVIDRequestSchema: GenMessage<JWTSVIDRequest> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 5);
 
 /**
  * The JWTSVIDResponse message conveys JWT-SVIDs.
  *
  * @generated from message JWTSVIDResponse
  */
-export type JWTSVIDResponse = Message<'JWTSVIDResponse'> & {
+export type JWTSVIDResponse = Message<"JWTSVIDResponse"> & {
   /**
    * Required. The list of returned JWT-SVIDs.
    *
@@ -224,17 +215,15 @@ export type JWTSVIDResponse = Message<'JWTSVIDResponse'> & {
  * Describes the message JWTSVIDResponse.
  * Use `create(JWTSVIDResponseSchema)` to create a new message.
  */
-export const JWTSVIDResponseSchema: GenMessage<JWTSVIDResponse> /*@__PURE__*/ = messageDesc(
-  file_workloadapi,
-  6,
-);
+export const JWTSVIDResponseSchema: GenMessage<JWTSVIDResponse> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 6);
 
 /**
  * The JWTSVID message carries the JWT-SVID token and associated metadata.
  *
  * @generated from message JWTSVID
  */
-export type JWTSVID = Message<'JWTSVID'> & {
+export type JWTSVID = Message<"JWTSVID"> & {
   /**
    * Required. The SPIFFE ID of the JWT-SVID.
    *
@@ -264,7 +253,8 @@ export type JWTSVID = Message<'JWTSVID'> & {
  * Describes the message JWTSVID.
  * Use `create(JWTSVIDSchema)` to create a new message.
  */
-export const JWTSVIDSchema: GenMessage<JWTSVID> /*@__PURE__*/ = messageDesc(file_workloadapi, 7);
+export const JWTSVIDSchema: GenMessage<JWTSVID> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 7);
 
 /**
  * The JWTBundlesRequest message conveys parameters for requesting JWT bundles.
@@ -272,23 +262,22 @@ export const JWTSVIDSchema: GenMessage<JWTSVID> /*@__PURE__*/ = messageDesc(file
  *
  * @generated from message JWTBundlesRequest
  */
-export type JWTBundlesRequest = Message<'JWTBundlesRequest'> & {};
+export type JWTBundlesRequest = Message<"JWTBundlesRequest"> & {
+};
 
 /**
  * Describes the message JWTBundlesRequest.
  * Use `create(JWTBundlesRequestSchema)` to create a new message.
  */
-export const JWTBundlesRequestSchema: GenMessage<JWTBundlesRequest> /*@__PURE__*/ = messageDesc(
-  file_workloadapi,
-  8,
-);
+export const JWTBundlesRequestSchema: GenMessage<JWTBundlesRequest> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 8);
 
 /**
  * The JWTBundlesResponse conveys JWT bundles.
  *
  * @generated from message JWTBundlesResponse
  */
-export type JWTBundlesResponse = Message<'JWTBundlesResponse'> & {
+export type JWTBundlesResponse = Message<"JWTBundlesResponse"> & {
   /**
    * Required. JWK encoded JWT bundles, keyed by the SPIFFE ID of the trust
    * domain.
@@ -302,10 +291,8 @@ export type JWTBundlesResponse = Message<'JWTBundlesResponse'> & {
  * Describes the message JWTBundlesResponse.
  * Use `create(JWTBundlesResponseSchema)` to create a new message.
  */
-export const JWTBundlesResponseSchema: GenMessage<JWTBundlesResponse> /*@__PURE__*/ = messageDesc(
-  file_workloadapi,
-  9,
-);
+export const JWTBundlesResponseSchema: GenMessage<JWTBundlesResponse> = /*@__PURE__*/
+  messageDesc(file_workloadapi, 9);
 
 /**
  * The ValidateJWTSVIDRequest message conveys request parameters for
@@ -313,7 +300,7 @@ export const JWTBundlesResponseSchema: GenMessage<JWTBundlesResponse> /*@__PURE_
  *
  * @generated from message ValidateJWTSVIDRequest
  */
-export type ValidateJWTSVIDRequest = Message<'ValidateJWTSVIDRequest'> & {
+export type ValidateJWTSVIDRequest = Message<"ValidateJWTSVIDRequest"> & {
   /**
    * Required. The audience of the validating party. The JWT-SVID must
    * contain an audience claim which contains this value in order to
@@ -336,7 +323,7 @@ export type ValidateJWTSVIDRequest = Message<'ValidateJWTSVIDRequest'> & {
  * Describes the message ValidateJWTSVIDRequest.
  * Use `create(ValidateJWTSVIDRequestSchema)` to create a new message.
  */
-export const ValidateJWTSVIDRequestSchema: GenMessage<ValidateJWTSVIDRequest> /*@__PURE__*/ =
+export const ValidateJWTSVIDRequestSchema: GenMessage<ValidateJWTSVIDRequest> = /*@__PURE__*/
   messageDesc(file_workloadapi, 10);
 
 /**
@@ -344,7 +331,7 @@ export const ValidateJWTSVIDRequestSchema: GenMessage<ValidateJWTSVIDRequest> /*
  *
  * @generated from message ValidateJWTSVIDResponse
  */
-export type ValidateJWTSVIDResponse = Message<'ValidateJWTSVIDResponse'> & {
+export type ValidateJWTSVIDResponse = Message<"ValidateJWTSVIDResponse"> & {
   /**
    * Required. The SPIFFE ID of the validated JWT-SVID.
    *
@@ -365,7 +352,7 @@ export type ValidateJWTSVIDResponse = Message<'ValidateJWTSVIDResponse'> & {
  * Describes the message ValidateJWTSVIDResponse.
  * Use `create(ValidateJWTSVIDResponseSchema)` to create a new message.
  */
-export const ValidateJWTSVIDResponseSchema: GenMessage<ValidateJWTSVIDResponse> /*@__PURE__*/ =
+export const ValidateJWTSVIDResponseSchema: GenMessage<ValidateJWTSVIDResponse> = /*@__PURE__*/
   messageDesc(file_workloadapi, 11);
 
 /**
@@ -385,10 +372,10 @@ export const SpiffeWorkloadAPI: GenService<{
    * @generated from rpc SpiffeWorkloadAPI.FetchX509SVID
    */
   fetchX509SVID: {
-    methodKind: 'server_streaming';
+    methodKind: "server_streaming";
     input: typeof X509SVIDRequestSchema;
     output: typeof X509SVIDResponseSchema;
-  };
+  },
   /**
    * Fetch trust bundles and CRLs. Useful for clients that only need to
    * validate SVIDs without obtaining an SVID for themself. As this
@@ -398,10 +385,10 @@ export const SpiffeWorkloadAPI: GenService<{
    * @generated from rpc SpiffeWorkloadAPI.FetchX509Bundles
    */
   fetchX509Bundles: {
-    methodKind: 'server_streaming';
+    methodKind: "server_streaming";
     input: typeof X509BundlesRequestSchema;
     output: typeof X509BundlesResponseSchema;
-  };
+  },
   /**
    * Fetch JWT-SVIDs for all SPIFFE identities the workload is entitled to,
    * for the requested audience. If an optional SPIFFE ID is requested, only
@@ -410,10 +397,10 @@ export const SpiffeWorkloadAPI: GenService<{
    * @generated from rpc SpiffeWorkloadAPI.FetchJWTSVID
    */
   fetchJWTSVID: {
-    methodKind: 'unary';
+    methodKind: "unary";
     input: typeof JWTSVIDRequestSchema;
     output: typeof JWTSVIDResponseSchema;
-  };
+  },
   /**
    * Fetches the JWT bundles, formatted as JWKS documents, keyed by the
    * SPIFFE ID of the trust domain. As this information changes, subsequent
@@ -422,10 +409,10 @@ export const SpiffeWorkloadAPI: GenService<{
    * @generated from rpc SpiffeWorkloadAPI.FetchJWTBundles
    */
   fetchJWTBundles: {
-    methodKind: 'server_streaming';
+    methodKind: "server_streaming";
     input: typeof JWTBundlesRequestSchema;
     output: typeof JWTBundlesResponseSchema;
-  };
+  },
   /**
    * Validates a JWT-SVID against the requested audience. Returns the SPIFFE
    * ID of the JWT-SVID and JWT claims.
@@ -433,8 +420,10 @@ export const SpiffeWorkloadAPI: GenService<{
    * @generated from rpc SpiffeWorkloadAPI.ValidateJWTSVID
    */
   validateJWTSVID: {
-    methodKind: 'unary';
+    methodKind: "unary";
     input: typeof ValidateJWTSVIDRequestSchema;
     output: typeof ValidateJWTSVIDResponseSchema;
-  };
-}> /*@__PURE__*/ = serviceDesc(file_workloadapi, 0);
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_workloadapi, 0);
+

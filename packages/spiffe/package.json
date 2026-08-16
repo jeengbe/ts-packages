@@ -1,9 +1,8 @@
 {
   "name": "@jeengbe/spiffe",
   "version": "0.6.6",
-  "description": "A TypeScript library for working with SPIFFE workload identities, with optional Google Cloud and KafkaJS integrations.",
+  "description": "A TypeScript library for working with SPIFFE workload identities.",
   "keywords": [
-    "Google Cloud",
     "JWT",
     "KafkaJS",
     "SPIFFE",
@@ -20,45 +19,38 @@
   "bugs": {
     "url": "https://github.com/jeengbe/ts-packages/issues"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeengbe/ts-packages.git",
+    "directory": "packages/spiffe"
+  },
   "license": "MIT",
   "author": {
     "name": "Jesper Engberg",
     "email": "jeengbe@gmail.com",
     "url": "https://github.com/jeengbe"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/jeengbe/ts-packages.git",
-    "directory": "packages/spiffe"
-  },
-  "files": [
-    "dist",
-    "src",
-    "!src/**/*.spec.ts",
-    "!src/__snapshots__/*"
-  ],
-  "type": "module",
   "sideEffects": false,
-  "main": "./dist/index.mjs",
-  "typings": "./dist/index.d.mts",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
       "default": "./dist/index.mjs"
-    },
-    "./google-auth": {
-      "types": "./dist/google-auth.d.mts",
-      "default": "./dist/google-auth.mjs"
     },
     "./kafkajs": {
       "types": "./dist/kafkajs.d.mts",
       "default": "./dist/kafkajs.mjs"
     }
   },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
+  "main": "./dist/index.mjs",
+  "typings": "./dist/index.d.mts",
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.spec.ts",
+    "!src/__snapshots__/*",
+    "!src/**/fake.ts"
+  ],
   "scripts": {
     "build": "tsdown",
     "generate:proto": "buf generate",
@@ -99,5 +91,9 @@
     "mappersmith": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

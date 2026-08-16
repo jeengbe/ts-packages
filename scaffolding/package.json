@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "license": "MIT",
+  "type": "module",
+  "types": "types.d.ts",
   "files": [
     "tsconfig.base.json",
     "tsdown.config.base.ts",
@@ -11,8 +13,6 @@
     "oxfmt.config.base.ts",
     "types.d.ts"
   ],
-  "type": "module",
-  "types": "types.d.ts",
   "scripts": {
     "lint": "oxlint --fix . && oxfmt --write ."
   },

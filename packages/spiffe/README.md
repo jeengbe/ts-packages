@@ -29,13 +29,31 @@ To specify a socket explicitly:
 const spiffe = new SpiffeClient('unix:///path/to/api.sock');
 ```
 
-For advanced gRPC configuration, pass a `GrpcOptions` object instead:
+For advanced gRPC configuration (e.g. custom channel credentials), construct your own `@connectrpc/connect` `Transport` and pass it instead. Make sure to set the `workload.spiffe.io` metadata header to `'true'`, as the Workload API requires it:
 
 ```ts
-const spiffe = new SpiffeClient({
-  host: 'unix:///path/to/api.sock',
-  channelCredentials: ChannelCredentials.createInsecure(),
-  meta: { 'workload.spiffe.io': 'true' },
+import { createGrpcTransport } from '@connectrpc/connect-node';
+
+const spiffe = new SpiffeClient(
+  createGrpcTransport({
+    baseUrl: 'https://spire-agent.internal:8081',
+    interceptors: [
+      (next) => (req) => {
+        req.header.set('workload.spiffe.io', 'true');
+        return next(req);
+      },
+    ],
+  }),
+);
+```
+
+Both forms accept an optional `SpiffeClientRetryOptions` as the last argument, to configure retries while fetching SVIDs (e.g. while the SPIRE agent socket isn't ready yet, or the workload isn't yet registered). `PermissionDenied` and `Unavailable` gRPC errors are retried with exponential backoff:
+
+```ts
+const spiffe = new SpiffeClient(undefined, {
+  maxAttempts: 6,
+  initialDelayMs: 1_000,
+  maxDelayMs: 30_000,
 });
 ```
 
@@ -95,24 +113,6 @@ const token = await spiffe.getJwt('orders-api', 'my-service');
 
 SVIDs are cached for half of their remaining TTL and concurrent requests for the same audience are deduplicated.
 
-### Writing JWTs to Disk
-
-`SpiffeHelper` manages JWT-SVIDs on disk with automatic refresh, useful for applications that read credentials from a file path (e.g. some gRPC implementations):
-
-```ts
-const helper = new SpiffeHelper(spiffe);
-const handle = await helper.ensureJwtOnDisk('/tmp/svid.jwt', 'orders-api');
-
-console.log(handle.path); // '/tmp/svid.jwt'
-console.log(handle.spiffeId); // current SPIFFE ID
-
-// The file is refreshed automatically at 50% of its TTL.
-// Clean up when done:
-await handle.close();
-```
-
-Files are written with `0600` permissions. Both `SpiffeHelper` and `JwtSvidDiskHandle` implement `AsyncDisposable`.
-
 ### Error handling
 
 `getJwt()` and `getJwtSvid()` throw `NoSvidError` when the Workload API returns no SVIDs:
@@ -131,46 +131,9 @@ try {
 
 `validateJwt()` returns `null` for invalid tokens rather than throwing.
 
-## Google Cloud Integration
-
-The `@jeengbe/spiffe/google-auth` entry point integrates SPIFFE with Google Cloud's [Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation).
-
-`maybeCreateGoogleAuthFromSpiffeAdc()` reads your Application Default Credentials and checks whether they contain a `credential_source.spiffe` field. This library introduces a **non-standard extension** to signal that a SPIFFE SVID should be used as the subject token. If that field is present, it returns the configured `GoogleAuthOptions` that fetch tokens from SPIFFE; otherwise it returns `undefined`, so you can fall back to the standard ADC flow. Note that depending on the Google SDK you use, the auth options may be passed in differently:
-
-```ts
-import { maybeCreateGoogleAuthFromSpiffeAdc } from '@jeengbe/spiffe/google-auth';
-import { BigQuery } from '@google-cloud/bigquery';
-import { GoogleGenAI } from '@google/genai';
-import { GoogleAuth } from 'google-auth-library';
-
-const googleAuthOptions = await maybeCreateGoogleAuthFromSpiffeAdc();
-
-const genAi = new GoogleGenAI({ googleAuthOptions });
-const bigQuery = new BigQuery({ authClient: await new GoogleAuth(googleAuth).getClient() });
-```
-
-To use this, create an ADC file in the standard `external_account` format and add a `credential_source.spiffe` block. The `credential_source.spiffe` field is **not part of the official ADC spec**. It is interpreted by this library and ignored by other tooling.
-
-```json
-{
-  "type": "external_account",
-  "audience": "//iam.googleapis.com/projects/<number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>",
-  "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
-  "credential_source": {
-    "spiffe": {
-      "hint": "external-gcp"
-    }
-  }
-}
-```
-
-The `hint` field is optional and selects which SVID to use when the agent issues more than one. Only the `urn:ietf:params:oauth:token-type:jwt` subject token type is supported.
-
-ADC is discovered from `GOOGLE_APPLICATION_CREDENTIALS` (or `google_application_credentials`) or the standard gcloud paths (`~/.config/gcloud/application_default_credentials.json`).
-
 ## KafkaJS Integration
 
-The `@jeengbe/spiffe/kafkajs` entry point provides helpers for authenticating KafkaJS clients and related services using SPIFFE JWT-SVIDs.
+The `@jeengbe/spiffe/kafkajs` entry point provides helpers for authenticating KafkaJS clients using JWT-SVIDs.
 
 ### SASL Authentication
 
@@ -189,15 +152,15 @@ const kafka = new Kafka({
 To pass SASL extensions (e.g. for Confluent Cloud logical cluster routing):
 
 ```ts
-sasl: createKafkajsSaslMechanism('kafka-cluster', {
+createKafkajsSaslMechanism('kafka-cluster', {
   logicalCluster: 'lkc-abc123',
   identityPoolId: 'pool-xyz',
-}),
+});
 ```
 
 ### Schema Registry Middleware
 
-Use `createKafkajsAuthMiddleware()` to create a [Mappersmith](https://github.com/tulios/mappersmith) middleware that attaches a SPIFFE JWT-SVID as a bearer token on outgoing requests. This is useful for authenticating against services like the Confluent Schema Registry:
+Use `createKafkajsAuthMiddleware()` to create a [Mappersmith](https://github.com/tulios/mappersmith) middleware that attaches a SPIFFE JWT-SVID as a bearer `Authorization` token on outgoing requests:
 
 ```ts
 import { createKafkajsAuthMiddleware } from '@jeengbe/spiffe/kafkajs';
@@ -210,11 +173,11 @@ const schemaRegistry = new SchemaRegistry({
 });
 ```
 
-To pass additional headers alongside the `Authorization` header (e.g. for Confluent Cloud logical cluster routing):
+To pass additional headers (e.g. for Confluent Cloud logical cluster routing):
 
 ```ts
-middlewares: [createKafkajsAuthMiddleware('confluent-cloud', {
+createKafkajsAuthMiddleware('confluent-cloud', {
   'target-sr-cluster': 'lsrc-abc123',
   'identity-pool-id': 'pool-xyz',
-})],
+});
 ```

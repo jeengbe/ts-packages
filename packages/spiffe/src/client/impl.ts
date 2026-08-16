@@ -1,5 +1,6 @@
+import { SpiffeWorkloadAPI } from '../proto/workloadapi_pb.js';
 import { NoSvidError } from './error.js';
-import { SpiffeWorkloadAPI } from './proto/workloadapi_pb.js';
+import { SpiffeJwtClient } from './interface.js';
 import type {
   JwtSvid,
   ParsedJwtSvid,
@@ -16,7 +17,7 @@ import { setTimeout } from 'timers/promises';
 /**
  * The SPIFFE Client provides convenience APIs for interacting with the SPIFFE Workload API.
  */
-export class SpiffeClient implements AsyncDisposable {
+export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   private readonly jwtSvidCache = new TTLCache<string, ParsedJwtSvid>();
   private readonly jwtSvidsInFlight = new Map<string, Promise<readonly JwtSvid[]>>();
 
@@ -27,8 +28,6 @@ export class SpiffeClient implements AsyncDisposable {
    * Constructs a SPIFFE Client instance with the given socket. If no socket is provided, the
    * `SPIFFE_ENDPOINT_SOCKET` environment variable will be used, and if neither are set, defaults
    * to `unix:///tmp/spire-agent/public/api.sock`.
-   *
-   * Format: `unix:///path/to/socket` for Unix domain sockets, or `tcp://host:port` for TCP sockets.
    *
    * @see https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Workload_Endpoint.md#4-locating-the-endpoint
    */
@@ -50,32 +49,10 @@ export class SpiffeClient implements AsyncDisposable {
     this.api = createClient(SpiffeWorkloadAPI, resolveGrpcTransport(socketOrTransport));
   }
 
-  /**
-   * Fetches a JWT-SVID for the specified audience and returns the JWT string.
-   * If the workload is entitled to multiple SVIDs, the first one returned by the
-   * Workload API is used.
-   *
-   * @example
-   *
-   * ```ts
-   * const token = await spiffe.getJwt(['orders-api']);
-   *
-   * await fetch(url, {
-   *   headers: { authorization: `Bearer ${token}` },
-   * });
-   * ```
-   *
-   * @throws {NoSvidError} if the API returns no SVIDs for the specified filter.
-   */
   async getJwt(audience: string | readonly string[], hint?: string): Promise<string> {
     return (await this.getJwtSvid(audience, hint)).token;
   }
 
-  /**
-   * Fetches a JWT-SVID for the specified audience and returns the SVID.
-   *
-   * @throws {NoSvidError} if the API returns no SVIDs for the specified filter.
-   */
   async getJwtSvid(audience: string | readonly string[], hint?: string): Promise<ParsedJwtSvid> {
     const aud = typeof audience === 'string' ? [audience] : audience;
     const cacheKey = [aud.join('|'), hint ?? ''].join(':');
@@ -178,10 +155,6 @@ export class SpiffeClient implements AsyncDisposable {
     throw lastRetriableErr!;
   }
 
-  /**
-   * Validates a JWT-SVID and returns the validated payload if accepted, or null if
-   * the token is malformed or not untrusted.
-   */
   async validateJwt(expectedAudience: string, token: string): Promise<ValidatedJwtSvid | null> {
     let res;
     try {
@@ -243,16 +216,7 @@ function createGrpcTransportFromSocket(socketOrTransport?: string): Transport {
     process.env['SPIFFE_ENDPOINT_SOCKET'] ??
     'unix:///tmp/spire-agent/public/api.sock';
 
-  if (!socket.startsWith('unix://')) {
-    throw new Error(`Unsupported socket format: ${socket}. Only unix:// is supported.`);
-  }
-
-  const path = socket.slice('unix://'.length);
-
-  // https://github.com/connectrpc/connect-es/issues/756#issuecomment-1700864148
-  const sessionManager = new Http2SessionManager('http://localhost:0', undefined, {
-    createConnection: () => netConnect(path),
-  });
+  const sessionManager = createSessionManagerFromSocket(socket);
 
   return createGrpcTransport({
     baseUrl: 'http://localhost:0',
@@ -264,4 +228,21 @@ function createGrpcTransportFromSocket(socketOrTransport?: string): Transport {
       },
     ],
   });
+}
+
+function createSessionManagerFromSocket(socket: string): Http2SessionManager {
+  if (socket.startsWith('unix://')) {
+    const path = socket.slice('unix://'.length);
+
+    // https://github.com/connectrpc/connect-es/issues/756#issuecomment-1700864148
+    return new Http2SessionManager('http://localhost:0', undefined, {
+      createConnection: () => netConnect(path),
+    });
+  }
+
+  if (socket.startsWith('tcp://')) {
+    return new Http2SessionManager(`http://${socket.slice('tcp://'.length)}`);
+  }
+
+  throw new Error(`Unsupported socket format: ${socket}. Only unix:// and tcp:// are supported.`);
 }

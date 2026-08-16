@@ -172,6 +172,26 @@ const results = await resultCache.mcached(
 );
 ```
 
+### Remaining TTL (`getRemainingTtl`)
+
+Use `getRemainingTtl` to get the remaining time to live of a key in milliseconds. Returns `undefined` if the key does not exist (or has expired), and may return `Infinity` if the key exists but has no TTL set.
+
+```ts
+const remainingMs = await resultCache.getRemainingTtl('expensive-1');
+```
+
+### Observing cache reads
+
+`Cache` is an `EventEmitter` that fires a `read` event after every read operation (`get`, `mget`, `cached`, `mcached`), reporting the key, whether it was a hit, and which operation triggered it. This is useful for e.g. exposing cache hit-rate metrics:
+
+```ts
+resultCache.on('read', (key, hit, operation) => {
+  metrics.increment('cache.read', { key, hit, operation });
+});
+```
+
+For `mget`/`mcached`, the event is emitted once per requested key.
+
 ## Cache Adapters
 
 ### Redis
@@ -242,6 +262,12 @@ declare const result: Result;
 await resultCache.set('expensive-1', result, () => '1d' as const);
 ```
 
+A `ttl` may also be a function of the value being cached (and, for `mset`/`mcached`, its index), letting you vary the TTL per entry:
+
+```ts
+await resultCache.set('expensive-1', result, (value) => (value.calculated > 100 ? '1h' : '1d'));
+```
+
 ### `Array.map` and `mget`, `mdel`, `mhas`
 
 For the operations `mget`, `mdel`, `mhas`, you may run into compiler errors if you simply map over an input array (see example below). To fix this, add an [`as const` assertion](https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-4.html#const-assertions) to ensure that mapped keys are properly typed.
@@ -300,3 +326,16 @@ The `safeJsonSerialize` function performs runtime checks to validate whether val
 - `Date` (`JSON.parse(JSON.stringify(new Date()))` returns a string instead of a `Date` instance)
 
 For a detailed overview of supported and unsupported values, refer to the unit tests for `safeJsonSerialize`. These tests provide a comprehensive list of scenarios and behaviours.
+
+`safeJsonSerialize` also accepts an options object as its second parameter:
+
+- `allowUndefined` (default `true`): if `false`, throws when any object property has an `undefined` value, instead of silently dropping it (matching `JSON.stringify`'s default behaviour).
+- `whitelistTypes` (default `[]`): a list of constructors (e.g. `Date`) whose instances should be treated as serializable, even though they would normally be rejected.
+
+```ts
+import { Cache, safeJsonSerialize } from '@jeengbe/cache';
+
+new Cache<MyServiceCacheTypes>(cacheAdapter, undefined, {
+  serialize: (value, key) => safeJsonSerialize(value, { whitelistTypes: [Date] }),
+});
+```
