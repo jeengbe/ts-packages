@@ -49,9 +49,9 @@ describe('createKafkajsAuthMiddleware', () => {
   it('adds an Authorization header with the fetched JWT', async () => {
     spiffe.getJwt.mockResolvedValueOnce('the-jwt');
 
-    const middleware = createKafkajsAuthMiddleware('kafka-cluster', undefined, undefined, spiffe);
-
-    const result = await runMiddleware(middleware);
+    const result = await runMiddleware(
+      createKafkajsAuthMiddleware('kafka-cluster', undefined, undefined, spiffe),
+    );
 
     expect(spiffe.getJwt).toHaveBeenCalledWith('kafka-cluster', undefined);
     expect(result.headers()).toEqual({
@@ -62,14 +62,14 @@ describe('createKafkajsAuthMiddleware', () => {
   it('includes additional headers and the hint', async () => {
     spiffe.getJwt.mockResolvedValueOnce('the-jwt');
 
-    const middleware = createKafkajsAuthMiddleware(
-      'kafka-cluster',
-      { 'target-sr-cluster': 'lsrc-abc123' },
-      'my-hint',
-      spiffe,
+    const result = await runMiddleware(
+      createKafkajsAuthMiddleware(
+        'kafka-cluster',
+        { 'target-sr-cluster': 'lsrc-abc123' },
+        'my-hint',
+        spiffe,
+      ),
     );
-
-    const result = await runMiddleware(middleware);
 
     expect(spiffe.getJwt).toHaveBeenCalledWith('kafka-cluster', 'my-hint');
     expect(result.headers()).toEqual({
