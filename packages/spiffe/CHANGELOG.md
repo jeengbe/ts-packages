@@ -1,5 +1,11 @@
 # @jeengbe/spiffe
 
+## 1.0.3
+
+### Patch Changes
+
+- [#15](https://github.com/jeengbe/ts-packages/pull/15) [`6a0610f`](https://github.com/jeengbe/ts-packages/commit/6a0610f3b0d61a7f0954744a969c3d1cc8dc4cf5) - fix: compat with CJS-kafkajs package
+
 ## 1.0.2
 
 ### Patch Changes
