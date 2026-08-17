@@ -1,7 +1,9 @@
 import { SpiffeClient } from './client/index.js';
 import type { SpiffeJwtClient } from './client/index.js';
 import type { OauthbearerProviderResponse, SASLMechanismOptions } from 'kafkajs';
-import type { Middleware, Request } from 'mappersmith';
+import type { Request } from 'mappersmith' with {
+  'resolution-mode': 'require',
+};
 
 /**
  * Create a KafkaJS SASL mechanism that uses a JWT-SVID bearer credential for authentication.
@@ -74,17 +76,17 @@ export function createKafkajsSaslMechanism(
  * });
  * ```
  */
-export function createKafkajsAuthMiddleware(
+export function createKafkajsAuthMiddleware<R extends MappersmithRequest<R> = Request>(
   audience: string,
   headers?: Record<string, string>,
   hint?: string,
   spiffe: SpiffeJwtClient | (() => SpiffeJwtClient) = () => new SpiffeClient(),
-): Middleware {
+): MappersmithMiddleware<R> {
   const spiffeClient = typeof spiffe === 'function' ? spiffe() : spiffe;
 
   return () => ({
     __name: 'kafkajs-spiffe-auth-middleware',
-    async prepareRequest(next): Promise<Request> {
+    async prepareRequest(next) {
       const req = await next();
 
       return req.enhance({
@@ -95,4 +97,17 @@ export function createKafkajsAuthMiddleware(
       });
     },
   });
+}
+
+type MappersmithMiddleware<R extends MappersmithRequest<R>> = () => {
+  __name: string;
+  prepareRequest(next: () => Promise<R>): Promise<R>;
+};
+
+// Mappersmith exports different types for CJS/ESM, so when an ESM workspace imports the CJS package
+// @kafkajs/confluent-schema-registry, the types are not compatible (types have different declaration of private property).
+// So to fix this, we remove the dependency on mappersmith entirely and provide a compatible interface instead
+// that is assignable to both CJS/ESM.
+interface MappersmithRequest<R> {
+  enhance(options: { headers: Record<string, string> }): R;
 }
