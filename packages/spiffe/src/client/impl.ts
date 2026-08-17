@@ -49,11 +49,19 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     this.api = createClient(SpiffeWorkloadAPI, resolveGrpcTransport(socketOrTransport));
   }
 
-  async getJwt(audience: string | readonly string[], hint?: string): Promise<string> {
-    return (await this.getJwtSvid(audience, hint)).token;
+  async getJwt(
+    audience: string | readonly string[],
+    hint?: string,
+    abort?: AbortSignal,
+  ): Promise<string> {
+    return (await this.getJwtSvid(audience, hint, abort)).token;
   }
 
-  async getJwtSvid(audience: string | readonly string[], hint?: string): Promise<ParsedJwtSvid> {
+  async getJwtSvid(
+    audience: string | readonly string[],
+    hint?: string,
+    abort?: AbortSignal,
+  ): Promise<ParsedJwtSvid> {
     const aud = typeof audience === 'string' ? [audience] : audience;
     const cacheKey = [aud.join('|'), hint ?? ''].join(':');
 
@@ -63,7 +71,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
       return cached;
     }
 
-    const svid = (await this.listJwtSvids(cacheKey, aud, hint)).at(0);
+    const svid = (await this.listJwtSvids(cacheKey, aud, hint, abort)).at(0);
 
     if (!svid) {
       throw new NoSvidError('JWT', hint);
@@ -89,11 +97,12 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     cacheKey: string,
     audience: readonly string[],
     hint?: string,
+    abort?: AbortSignal,
   ): Promise<readonly JwtSvid[]> {
     let inFlight = this.jwtSvidsInFlight.get(cacheKey);
 
     if (!inFlight) {
-      inFlight = this._listJwtSvids(audience, hint).finally(() => {
+      inFlight = this._listJwtSvids(audience, hint, abort).finally(() => {
         this.jwtSvidsInFlight.delete(cacheKey);
       });
       this.jwtSvidsInFlight.set(cacheKey, inFlight);
@@ -105,8 +114,10 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   private async _listJwtSvids(
     audience: readonly string[],
     hint?: string,
+    abort?: AbortSignal,
   ): Promise<readonly JwtSvid[]> {
     const { maxAttempts = 6, initialDelayMs = 1_000, maxDelayMs = 30_000 } = this.retryOptions;
+    const signal = this.combinedSignal(abort);
 
     let lastRetriableErr: ConnectError | undefined;
 
@@ -114,9 +125,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
       if (attempt > 0) {
         const delay = Math.min(initialDelayMs * 2 ** (attempt - 1), maxDelayMs);
 
-        await setTimeout(delay, undefined, {
-          signal: this.abortController.signal,
-        });
+        await setTimeout(delay, undefined, { signal });
       }
 
       try {
@@ -125,7 +134,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
             audience: [...audience],
             spiffeId: '',
           },
-          { signal: this.abortController.signal },
+          { signal },
         );
 
         return res.svids
@@ -155,7 +164,11 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     throw lastRetriableErr!;
   }
 
-  async validateJwt(expectedAudience: string, token: string): Promise<ValidatedJwtSvid | null> {
+  async validateJwt(
+    expectedAudience: string,
+    token: string,
+    abort?: AbortSignal,
+  ): Promise<ValidatedJwtSvid | null> {
     let res;
     try {
       res = await this.api.validateJWTSVID(
@@ -163,7 +176,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
           audience: expectedAudience,
           svid: token,
         },
-        { signal: this.abortController.signal },
+        { signal: this.combinedSignal(abort) },
       );
     } catch (err) {
       if (err instanceof ConnectError && err.code === Code.InvalidArgument) {
@@ -185,6 +198,12 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
 
   async close(): Promise<void> {
     this.abortController.abort();
+  }
+
+  private combinedSignal(abort?: AbortSignal): AbortSignal {
+    return abort
+      ? AbortSignal.any([abort, this.abortController.signal])
+      : this.abortController.signal;
   }
 }
 

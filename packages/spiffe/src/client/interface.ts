@@ -24,18 +24,26 @@ export interface SpiffeJwtClient {
    *
    * @throws {NoSvidError} if the API returns no SVIDs for the specified filter.
    */
-  getJwt(audience: string | readonly string[], hint?: string): Promise<string>;
+  getJwt(audience: string | readonly string[], hint?: string, abort?: AbortSignal): Promise<string>;
 
   /**
    * Fetches a JWT-SVID for the specified audience and returns the SVID.
    *
    * @throws {NoSvidError} if the API returns no SVIDs for the specified filter.
    */
-  getJwtSvid(audience: string | readonly string[], hint?: string): Promise<ParsedJwtSvid>;
+  getJwtSvid(
+    audience: string | readonly string[],
+    hint?: string,
+    abort?: AbortSignal,
+  ): Promise<ParsedJwtSvid>;
 
   /**
    * Validates a JWT-SVID and returns the validated payload if accepted, or null if
    * the token is malformed or not untrusted.
    */
-  validateJwt(expectedAudience: string, token: string): Promise<ValidatedJwtSvid | null>;
+  validateJwt(
+    expectedAudience: string,
+    token: string,
+    abort?: AbortSignal,
+  ): Promise<ValidatedJwtSvid | null>;
 }
