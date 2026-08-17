@@ -1,5 +1,11 @@
 # @jeengbe/spiffe
 
+## 1.0.4
+
+### Patch Changes
+
+- [#17](https://github.com/jeengbe/ts-packages/pull/17) [`e38092f`](https://github.com/jeengbe/ts-packages/commit/e38092f5216a415067cc41251f79585f7f25587b) - fix: honour abort signal
+
 ## 1.0.3
 
 ### Patch Changes
