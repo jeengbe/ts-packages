@@ -1,5 +1,11 @@
 # @jeengbe/spiffe
 
+## 1.1.0
+
+### Minor Changes
+
+- [#19](https://github.com/jeengbe/ts-packages/pull/19) [`61fda3e`](https://github.com/jeengbe/ts-packages/commit/61fda3e7c27beafa1053e050b17dda22a29c4b0b) - feat: cache validated JWT-SVIDs
+
 ## 1.0.4
 
 ### Patch Changes
