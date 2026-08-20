@@ -6,7 +6,8 @@ import { Code, ConnectError, createRouterTransport } from '@connectrpc/connect';
 import { connectNodeAdapter } from '@connectrpc/connect-node';
 import * as fs from 'node:fs/promises';
 import * as http2 from 'node:http2';
-import { describe, beforeEach, it, Mock, beforeAll, expect, vitest } from 'vitest';
+import { setTimeout } from 'node:timers/promises';
+import { beforeAll, beforeEach, describe, expect, it, Mock, vitest } from 'vitest';
 
 type FetchJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchJWTSVID'];
 type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVID'];
@@ -111,7 +112,7 @@ describe('SpiffeClientImpl', () => {
 
         expect(fetchJWTSVID).toHaveBeenCalledTimes(1);
 
-        await new Promise((resolve) => setTimeout(resolve, 4000));
+        await setTimeout(4000);
 
         expect(await client.getJwt('test-audience')).not.toBe(firstJwt);
 
@@ -178,6 +179,71 @@ describe('SpiffeClientImpl', () => {
           },
         });
       });
+
+      it('should cache the validated SVID', async () => {
+        mockValidSvid();
+
+        const first = await client.validateJwt('test-audience', 'test-token');
+
+        expect(await client.validateJwt('test-audience', 'test-token')).toEqual(first);
+        expect(validateJWTSVID).toHaveBeenCalledTimes(1);
+      });
+
+      it('should cache per token and audience', async () => {
+        mockValidSvid();
+
+        await client.validateJwt('test-audience', 'test-token');
+        await client.validateJwt('test-audience', 'other-token');
+        await client.validateJwt('other-audience', 'test-token');
+
+        expect(validateJWTSVID).toHaveBeenCalledTimes(3);
+      });
+
+      it('should not cache beyond the token expiry', async () => {
+        mockValidSvid(Math.floor(Date.now() / 1000) + 1);
+
+        await client.validateJwt('test-audience', 'test-token');
+
+        await setTimeout(1500);
+
+        await client.validateJwt('test-audience', 'test-token');
+
+        expect(validateJWTSVID).toHaveBeenCalledTimes(2);
+      });
+
+      it('should not cache tokens without a numeric exp claim', async () => {
+        validateJWTSVID.mockImplementation(() => ({
+          spiffeId: 'fake-spiffe-id',
+          claims: { sub: 'fake' },
+        }));
+
+        await client.validateJwt('test-audience', 'test-token');
+        await client.validateJwt('test-audience', 'test-token');
+
+        expect(validateJWTSVID).toHaveBeenCalledTimes(2);
+      });
+
+      it('should not cache rejected tokens', async () => {
+        validateJWTSVID.mockImplementation(() => {
+          throw new ConnectError('Invalid token', Code.InvalidArgument);
+        });
+
+        expect(await client.validateJwt('test-audience', 'test-token')).toBeNull();
+        expect(await client.validateJwt('test-audience', 'test-token')).toBeNull();
+
+        expect(validateJWTSVID).toHaveBeenCalledTimes(2);
+      });
+
+      function mockValidSvid(exp = Math.floor(Date.now() / 1000) + 10 * 60): void {
+        validateJWTSVID.mockImplementation(() => ({
+          spiffeId: 'fake-spiffe-id',
+          claims: {
+            sub: 'fake',
+            aud: ['fake'],
+            exp,
+          },
+        }));
+      }
     });
   });
 });

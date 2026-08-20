@@ -114,6 +114,8 @@ const token = await spiffe.getJwt('orders-api', 'my-service');
 
 SVIDs are cached for half of their remaining TTL and concurrent requests for the same audience are deduplicated.
 
+Validated tokens are cached too, so a burst of requests carrying the same bearer token only hits the Workload API once. The cache is keyed by token and expected audience, bounded in size with least-recently-used eviction, and an entry never outlives the `exp` claim of its token. Invalid tokens are never cached.
+
 ### Error handling
 
 `getJwt()` and `getJwtSvid()` throw `NoSvidError` when the Workload API returns no SVIDs:

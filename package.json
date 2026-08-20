@@ -7,10 +7,10 @@
   "scripts": {
     "build": "pnpm -r run build",
     "changeset": "changeset",
-    "sync-repo": "node scripts/generate-readme-packages.ts && node scripts/generate-codecov-config.ts && oxfmt --write README.md",
     "lint": "oxlint --fix . && oxfmt --write .",
     "lint:readonly": "oxlint . && oxfmt --check .",
     "release:ci": "pnpm run build && changeset publish",
+    "sync-repo": "node scripts/generate-readme-packages.ts && node scripts/generate-codecov-config.ts && oxfmt --write README.md",
     "test": "pnpm -r run test",
     "test:coverage": "vitest run --coverage",
     "version": "changeset version"
