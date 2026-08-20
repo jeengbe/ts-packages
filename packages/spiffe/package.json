@@ -62,7 +62,8 @@
     "@connectrpc/connect": "^2.1.2",
     "@connectrpc/connect-node": "^2.1.2",
     "@grpc/grpc-js": "^1.14.3",
-    "@isaacs/ttlcache": "^2.1.4"
+    "@isaacs/ttlcache": "^2.1.4",
+    "lru-cache": "^11.5.2"
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.13.0",

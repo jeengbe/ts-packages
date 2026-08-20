@@ -169,6 +169,9 @@ importers:
       '@isaacs/ttlcache':
         specifier: ^2.1.4
         version: 2.1.5
+      lru-cache:
+        specifier: ^11.5.2
+        version: 11.5.2
     devDependencies:
       '@bufbuild/protoc-gen-es':
         specifier: ^2.13.0

@@ -11,8 +11,12 @@ import type { Client, Transport } from '@connectrpc/connect';
 import { Code, ConnectError, createClient } from '@connectrpc/connect';
 import { createGrpcTransport, Http2SessionManager } from '@connectrpc/connect-node';
 import { TTLCache } from '@isaacs/ttlcache';
+import { LRUCache } from 'lru-cache';
 import { connect as netConnect } from 'node:net';
 import { setTimeout } from 'node:timers/promises';
+
+const VALIDATED_JWT_CACHE_MAX = 1_000;
+const VALIDATED_JWT_CACHE_MAX_TTL_MS = 60_000;
 
 /**
  * The SPIFFE Client provides convenience APIs for interacting with the SPIFFE Workload API.
@@ -20,6 +24,11 @@ import { setTimeout } from 'node:timers/promises';
 export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   private readonly jwtSvidCache = new TTLCache<string, ParsedJwtSvid>();
   private readonly jwtSvidsInFlight = new Map<string, Promise<readonly JwtSvid[]>>();
+
+  private readonly validatedJwtCache = new LRUCache<string, ValidatedJwtSvid>({
+    max: VALIDATED_JWT_CACHE_MAX,
+    ttl: VALIDATED_JWT_CACHE_MAX_TTL_MS,
+  });
 
   private readonly abortController = new AbortController();
   private readonly api: Client<typeof SpiffeWorkloadAPI>;
@@ -169,6 +178,13 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     token: string,
     signal?: AbortSignal,
   ): Promise<ValidatedJwtSvid | null> {
+    const cacheKey = `${token}:${expectedAudience}`;
+    const cached = this.validatedJwtCache.get(cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     let res;
     try {
       res = await this.api.validateJWTSVID(
@@ -186,10 +202,32 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
       throw err;
     }
 
-    return {
+    const validated: ValidatedJwtSvid = {
       spiffeId: res.spiffeId,
       claims: (res.claims as Partial<Record<string, unknown>> | undefined) ?? {},
     };
+
+    this.cacheValidatedJwt(cacheKey, validated);
+
+    return validated;
+  }
+
+  private cacheValidatedJwt(cacheKey: string, validated: ValidatedJwtSvid): void {
+    const exp = validated.claims['exp'];
+
+    if (typeof exp !== 'number') {
+      return;
+    }
+
+    const ttlRemainingMs = exp * 1000 - Date.now();
+
+    if (ttlRemainingMs <= 0) {
+      return;
+    }
+
+    this.validatedJwtCache.set(cacheKey, validated, {
+      ttl: Math.min(ttlRemainingMs, VALIDATED_JWT_CACHE_MAX_TTL_MS),
+    });
   }
 
   async [Symbol.asyncDispose](): Promise<void> {
@@ -198,6 +236,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
 
   async close(): Promise<void> {
     this.abortController.abort();
+    this.validatedJwtCache.clear();
   }
 
   private combinedSignal(signal?: AbortSignal): AbortSignal {
