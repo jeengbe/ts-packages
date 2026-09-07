@@ -11,10 +11,12 @@ import { beforeAll, beforeEach, describe, expect, it, Mock, vitest } from 'vites
 
 type FetchJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchJWTSVID'];
 type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVID'];
+type FetchX509SVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchX509SVID'];
 
 describe('SpiffeClientImpl', () => {
   let fetchJWTSVID: Mock<FetchJWTSVIDImpl>;
   let validateJWTSVID: Mock<ValidateJWTSVIDImpl>;
+  let fetchX509SVID: Mock<FetchX509SVIDImpl>;
   let client: SpiffeClient;
 
   // In-memory transport routed straight to the mocks above, no real socket involved. Retry
@@ -25,6 +27,7 @@ describe('SpiffeClientImpl', () => {
       router.service(SpiffeWorkloadAPI, {
         fetchJWTSVID: (req, ctx) => fetchJWTSVID(req, ctx),
         validateJWTSVID: (req, ctx) => validateJWTSVID(req, ctx),
+        fetchX509SVID: (req, ctx) => fetchX509SVID(req, ctx),
       });
     });
   }
@@ -34,6 +37,9 @@ describe('SpiffeClientImpl', () => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
     validateJWTSVID = vitest.fn<ValidateJWTSVIDImpl>(() => {
+      throw new ConnectError('Not implemented', Code.Unimplemented);
+    });
+    fetchX509SVID = vitest.fn<FetchX509SVIDImpl>(() => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
 
@@ -243,6 +249,78 @@ describe('SpiffeClientImpl', () => {
             exp,
           },
         }));
+      }
+    });
+
+    describe('getSpiffeId', () => {
+      it('should return the SPIFFE ID of the workload', async () => {
+        mockX509Svids([{ spiffeId: 'spiffe://example.org/test', hint: '' }]);
+
+        expect(await client.getSpiffeId()).toBe('spiffe://example.org/test');
+      });
+
+      it('should filter for hint if provided', async () => {
+        mockX509Svids([
+          { spiffeId: 'spiffe://example.org/test1', hint: 'hint1' },
+          { spiffeId: 'spiffe://example.org/test2', hint: 'hint2' },
+        ]);
+
+        expect(await client.getSpiffeId('hint2')).toBe('spiffe://example.org/test2');
+      });
+
+      it('should cache the SPIFFE ID', async () => {
+        mockX509Svids([{ spiffeId: 'spiffe://example.org/test', hint: '' }]);
+
+        await client.getSpiffeId();
+
+        expect(await client.getSpiffeId()).toBe('spiffe://example.org/test');
+        expect(fetchX509SVID).toHaveBeenCalledTimes(1);
+      });
+
+      it('should cache per hint', async () => {
+        mockX509Svids([
+          { spiffeId: 'spiffe://example.org/test1', hint: 'hint1' },
+          { spiffeId: 'spiffe://example.org/test2', hint: 'hint2' },
+        ]);
+
+        expect(await client.getSpiffeId('hint1')).toBe('spiffe://example.org/test1');
+        expect(await client.getSpiffeId('hint2')).toBe('spiffe://example.org/test2');
+
+        expect(fetchX509SVID).toHaveBeenCalledTimes(2);
+      });
+
+      it('should throw NoSvidError if no SVIDs are returned', async () => {
+        mockX509Svids([]);
+
+        await expect(client.getSpiffeId()).rejects.toThrow(NoSvidError);
+      });
+
+      it('should throw NoSvidError if the stream ends without a response', async () => {
+        fetchX509SVID.mockImplementation(async function* () {
+          // An empty stream, i.e. no response at all.
+        });
+
+        await expect(client.getSpiffeId()).rejects.toThrow(NoSvidError);
+      });
+
+      it('should throw NoSvidError if call fails with PERMISSION_DENIED', async () => {
+        fetchX509SVID.mockImplementation(() => {
+          throw new ConnectError('Permission denied', Code.PermissionDenied);
+        });
+
+        await using fastClient = new SpiffeClient(createMockTransport(), {
+          maxAttempts: 2,
+          initialDelayMs: 1,
+          maxDelayMs: 1,
+        });
+
+        await expect(fastClient.getSpiffeId()).rejects.toThrow(NoSvidError);
+      });
+
+      function mockX509Svids(svids: { spiffeId: string; hint: string }[]): void {
+        fetchX509SVID.mockImplementation(async function* () {
+          yield { svids };
+        });
       }
     });
   });

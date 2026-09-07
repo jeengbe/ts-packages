@@ -22,7 +22,7 @@ export interface SpiffeJwtClient {
    * });
    * ```
    *
-   * @throws {NoSvidError} if the API returns no SVIDs for the specified filter.
+   * @throws {NoSvidError} if the API returns no SVID.
    */
   getJwt(
     audience: string | readonly string[],
@@ -33,7 +33,7 @@ export interface SpiffeJwtClient {
   /**
    * Fetches a JWT-SVID for the specified audience and returns the SVID.
    *
-   * @throws {NoSvidError} if the API returns no SVIDs for the specified filter.
+   * @throws {NoSvidError} if the API returns no SVID.
    */
   getJwtSvid(
     audience: string | readonly string[],
@@ -50,4 +50,13 @@ export interface SpiffeJwtClient {
     token: string,
     signal?: AbortSignal,
   ): Promise<ValidatedJwtSvid | null>;
+
+  /**
+   * Fetches the SPIFFE ID of the workload.
+   * If the workload is entitled to multiple SVIDs, the first one returned by the
+   * Workload API is used.
+   *
+   * @throws {NoSvidError} if the API returns no SVID.
+   */
+  getSpiffeId(hint?: string, signal?: AbortSignal): Promise<string>;
 }

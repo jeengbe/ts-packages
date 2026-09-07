@@ -106,19 +106,27 @@ async function authenticateRequest(req: Request) {
 }
 ```
 
+Use `getSpiffeId()` to look up the workload's own SPIFFE ID without minting a token for an audience:
+
+```ts
+const spiffeId = await spiffe.getSpiffeId(); // spiffe://example.org/orders-worker
+```
+
 Both `getJwt()` and `getJwtSvid()` accept an optional `hint` parameter to select a specific SVID when the agent issues more than one:
 
 ```ts
 const token = await spiffe.getJwt('orders-api', 'my-service');
 ```
 
-SVIDs are cached for half of their remaining TTL and concurrent requests for the same audience are deduplicated.
+`getSpiffeId()` takes the same `hint` as its first parameter.
+
+SVIDs are cached for half of their remaining TTL and concurrent requests for the same audience are deduplicated. The SPIFFE ID does not change while the workload runs, so it is cached for the lifetime of the client.
 
 Validated tokens are cached too, so a burst of requests carrying the same bearer token only hits the Workload API once. The cache is keyed by token and expected audience, bounded in size with least-recently-used eviction, and an entry never outlives the `exp` claim of its token. Invalid tokens are never cached.
 
 ### Error handling
 
-`getJwt()` and `getJwtSvid()` throw `NoSvidError` when the Workload API returns no SVIDs:
+`getJwt()`, `getJwtSvid()` and `getSpiffeId()` throw `NoSvidError` when the Workload API returns no SVIDs:
 
 ```ts
 import { NoSvidError } from '@jeengbe/spiffe';

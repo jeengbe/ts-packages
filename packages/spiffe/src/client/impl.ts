@@ -1,3 +1,4 @@
+import type { X509SVID } from '../proto/workloadapi_pb.js';
 import { SpiffeWorkloadAPI } from '../proto/workloadapi_pb.js';
 import { NoSvidError } from './error.js';
 import { SpiffeJwtClient } from './interface.js';
@@ -24,6 +25,9 @@ const VALIDATED_JWT_CACHE_MAX_TTL_MS = 60_000;
 export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   private readonly jwtSvidCache = new TTLCache<string, ParsedJwtSvid>();
   private readonly jwtSvidsInFlight = new Map<string, Promise<readonly JwtSvid[]>>();
+
+  private readonly spiffeIdCache = new Map<string, string>();
+  private readonly spiffeIdsInFlight = new Map<string, Promise<string>>();
 
   private readonly validatedJwtCache = new LRUCache<string, ValidatedJwtSvid>({
     max: VALIDATED_JWT_CACHE_MAX,
@@ -125,52 +129,28 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     hint?: string,
     signal?: AbortSignal,
   ): Promise<readonly JwtSvid[]> {
-    const { maxAttempts = 6, initialDelayMs = 1_000, maxDelayMs = 30_000 } = this.retryOptions;
-    const combinedSignal = this.combinedSignal(signal);
-
-    let lastRetriableErr: ConnectError | undefined;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      if (attempt > 0) {
-        const delay = Math.min(initialDelayMs * 2 ** (attempt - 1), maxDelayMs);
-
-        await setTimeout(delay, undefined, { signal: combinedSignal });
-      }
-
-      try {
-        const res = await this.api.fetchJWTSVID(
+    const res = await this.fetchWithRetries(
+      (retrySignal) =>
+        this.api.fetchJWTSVID(
           {
             audience: [...audience],
             spiffeId: '',
           },
-          { signal: combinedSignal },
-        );
+          { signal: retrySignal },
+        ),
+      signal,
+    );
 
-        return res.svids
-          .filter((svid) => !hint || svid.hint === hint)
-          .map(
-            (s): JwtSvid => ({
-              spiffeId: s.spiffeId,
-              token: s.svid,
-            }),
-          );
-      } catch (err) {
-        if (err instanceof ConnectError && isRetriableConnectCode(err.code)) {
-          lastRetriableErr = err;
-          continue;
-        }
-
-        throw err;
-      }
-    }
-
-    // After exhausting retries, preserve the original PERMISSION_DENIED behaviour so the
-    // caller gets NoSvidError rather than a raw ConnectError.
-    if (lastRetriableErr?.code === Code.PermissionDenied) {
-      return [];
-    }
-
-    throw lastRetriableErr!;
+    return (
+      res?.svids
+        .filter((svid) => !hint || svid.hint === hint)
+        .map(
+          (s): JwtSvid => ({
+            spiffeId: s.spiffeId,
+            token: s.svid,
+          }),
+        ) ?? []
+    );
   }
 
   async validateJwt(
@@ -230,13 +210,108 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     });
   }
 
+  async getSpiffeId(hint?: string, signal?: AbortSignal): Promise<string> {
+    const cacheKey = hint ?? '';
+    const cached = this.spiffeIdCache.get(cacheKey);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    let inFlight = this.spiffeIdsInFlight.get(cacheKey);
+
+    if (!inFlight) {
+      inFlight = this.fetchSpiffeId(hint, signal).finally(() => {
+        this.spiffeIdsInFlight.delete(cacheKey);
+      });
+      this.spiffeIdsInFlight.set(cacheKey, inFlight);
+    }
+
+    const spiffeId = await inFlight;
+
+    // The identity of a workload does not change while it is running, so it is cached for the
+    // lifetime of the client.
+    this.spiffeIdCache.set(cacheKey, spiffeId);
+
+    return spiffeId;
+  }
+
+  private async fetchSpiffeId(hint?: string, signal?: AbortSignal): Promise<string> {
+    const svids = await this.fetchWithRetries(
+      (retrySignal) => this.listX509Svids(retrySignal),
+      signal,
+    );
+
+    const svid = svids?.filter((s) => !hint || s.hint === hint).at(0);
+
+    if (!svid) {
+      throw new NoSvidError('X509', hint);
+    }
+
+    return svid.spiffeId;
+  }
+
+  /**
+   * The Workload API streams X.509-SVIDs and pushes a new response whenever they rotate. We are
+   * only interested in the current ones, so the stream is cancelled after the first response.
+   */
+  private async listX509Svids(signal: AbortSignal): Promise<readonly X509SVID[]> {
+    for await (const res of this.api.fetchX509SVID({}, { signal })) {
+      return res.svids;
+    }
+
+    return [];
+  }
+
   async [Symbol.asyncDispose](): Promise<void> {
     await this.close();
   }
 
   async close(): Promise<void> {
     this.abortController.abort();
+    this.spiffeIdCache.clear();
     this.validatedJwtCache.clear();
+  }
+
+  /**
+   * Runs `fetch` and retries retriable Workload API errors with exponential backoff.
+   *
+   * Resolves to `undefined` if all attempts failed with PERMISSION_DENIED, so that the caller
+   * can report a missing SVID rather than a raw `ConnectError`.
+   */
+  private async fetchWithRetries<T>(
+    fetch: (signal: AbortSignal) => Promise<T>,
+    signal?: AbortSignal,
+  ): Promise<T | undefined> {
+    const { maxAttempts = 6, initialDelayMs = 1_000, maxDelayMs = 30_000 } = this.retryOptions;
+    const combinedSignal = this.combinedSignal(signal);
+
+    let lastRetriableErr: ConnectError | undefined;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      if (attempt > 0) {
+        const delay = Math.min(initialDelayMs * 2 ** (attempt - 1), maxDelayMs);
+
+        await setTimeout(delay, undefined, { signal: combinedSignal });
+      }
+
+      try {
+        return await fetch(combinedSignal);
+      } catch (err) {
+        if (err instanceof ConnectError && isRetriableConnectCode(err.code)) {
+          lastRetriableErr = err;
+          continue;
+        }
+
+        throw err;
+      }
+    }
+
+    if (lastRetriableErr?.code === Code.PermissionDenied) {
+      return undefined;
+    }
+
+    throw lastRetriableErr!;
   }
 
   private combinedSignal(signal?: AbortSignal): AbortSignal {

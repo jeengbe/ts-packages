@@ -5,4 +5,5 @@ export class FakeSpiffeClient implements SpiffeJwtClient {
   getJwt = vitest.fn<SpiffeJwtClient['getJwt']>();
   getJwtSvid = vitest.fn<SpiffeJwtClient['getJwtSvid']>();
   validateJwt = vitest.fn<SpiffeJwtClient['validateJwt']>();
+  getSpiffeId = vitest.fn<SpiffeJwtClient['getSpiffeId']>();
 }
