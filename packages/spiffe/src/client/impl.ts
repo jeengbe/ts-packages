@@ -87,7 +87,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     const svid = (await this.listJwtSvids(cacheKey, aud, hint, signal)).at(0);
 
     if (!svid) {
-      throw new NoSvidError('JWT', hint);
+      throw new NoSvidError(hint);
     }
 
     const expiresAtMs = getJwtExpMs(svid.token);
@@ -245,7 +245,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     const svid = svids?.filter((s) => !hint || s.hint === hint).at(0);
 
     if (!svid) {
-      throw new NoSvidError('X509', hint);
+      throw new NoSvidError(hint);
     }
 
     return svid.spiffeId;

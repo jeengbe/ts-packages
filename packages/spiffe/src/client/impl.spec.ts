@@ -147,7 +147,24 @@ describe('SpiffeClientImpl', () => {
       it('should throw NoSvidError if no SVIDs are returned', async () => {
         fetchJWTSVID.mockImplementationOnce(() => ({ svids: [] }));
 
-        await expect(client.getJwt('test-audience')).rejects.toThrow(NoSvidError);
+        await expect(client.getJwt('test-audience')).rejects.toThrow(
+          expect.objectContaining({
+            name: 'NoSvidError',
+            message: 'No SVID found.',
+          }),
+        );
+      });
+
+      it('should mention the hint in the NoSvidError', async () => {
+        fetchJWTSVID.mockImplementationOnce(() => ({ svids: [] }));
+
+        await expect(client.getJwt('test-audience', 'hint1')).rejects.toThrow(
+          expect.objectContaining({
+            name: 'NoSvidError',
+            message: "No SVID found for hint 'hint1'.",
+            hint: 'hint1',
+          }),
+        );
       });
 
       it('should throw NoSvidError if call fails with PERMISSION_DENIED', async () => {
@@ -292,7 +309,12 @@ describe('SpiffeClientImpl', () => {
       it('should throw NoSvidError if no SVIDs are returned', async () => {
         mockX509Svids([]);
 
-        await expect(client.getSpiffeId()).rejects.toThrow(NoSvidError);
+        await expect(client.getSpiffeId()).rejects.toThrow(
+          expect.objectContaining({
+            name: 'NoSvidError',
+            message: 'No SVID found.',
+          }),
+        );
       });
 
       it('should throw NoSvidError if the stream ends without a response', async () => {
