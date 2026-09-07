@@ -41,6 +41,15 @@ export interface SpiffeJwtClient {
   ): Promise<JwtSvid | null>;
 
   /**
+   * Fetches the SPIFFE ID of the workload.
+   * If the workload is entitled to multiple SVIDs, the first one returned by the
+   * Workload API is used.
+   *
+   * @throws {NoSvidError} if the API returns no SVID.
+   */
+  getSpiffeId(filter?: SvidFilter, signal?: AbortSignal): Promise<string>;
+
+  /**
    * Validates a JWT-SVID and returns the validated payload if accepted, or null
    * if the token is malformed or not untrusted.
    */

@@ -11,10 +11,12 @@ import { beforeAll, beforeEach, describe, expect, it, Mock, vitest } from 'vites
 
 type FetchJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchJWTSVID'];
 type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVID'];
+type FetchX509SVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchX509SVID'];
 
 describe('SpiffeClient', () => {
   let fetchJWTSVID: Mock<FetchJWTSVIDImpl>;
   let validateJWTSVID: Mock<ValidateJWTSVIDImpl>;
+  let fetchX509SVID: Mock<FetchX509SVIDImpl>;
   let client: SpiffeClient;
 
   // In-memory transport routed straight to the mocks above, no real socket involved. Retry
@@ -25,6 +27,7 @@ describe('SpiffeClient', () => {
       router.service(SpiffeWorkloadAPI, {
         fetchJWTSVID: (req, ctx) => fetchJWTSVID(req, ctx),
         validateJWTSVID: (req, ctx) => validateJWTSVID(req, ctx),
+        fetchX509SVID: (req, ctx) => fetchX509SVID(req, ctx),
       });
     });
   }
@@ -34,6 +37,9 @@ describe('SpiffeClient', () => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
     validateJWTSVID = vitest.fn<ValidateJWTSVIDImpl>(() => {
+      throw new ConnectError('Not implemented', Code.Unimplemented);
+    });
+    fetchX509SVID = vitest.fn<FetchX509SVIDImpl>(() => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
 
@@ -339,6 +345,141 @@ describe('SpiffeClient', () => {
       });
 
       expect(await fastClient.getJwtSvid('test-audience')).toBeNull();
+    });
+  });
+
+  describe('getSpiffeId', () => {
+    it('should return the SPIFFE ID of the workload', async () => {
+      fetchJWTSVID.mockImplementationOnce(() => ({
+        svids: [
+          {
+            spiffeId: 'spiffe://example.org/test',
+            svid: createFakeJwtSvid(),
+            hint: '',
+          },
+        ],
+      }));
+
+      expect(await client.getSpiffeId()).toBe('spiffe://example.org/test');
+    });
+
+    it('should return the first SPIFFE ID if multiple SVIDs are returned', async () => {
+      fetchJWTSVID.mockImplementationOnce(() => ({
+        svids: [
+          {
+            spiffeId: 'spiffe://example.org/test1',
+            svid: createFakeJwtSvid('1'),
+            hint: 'hint1',
+          },
+          {
+            spiffeId: 'spiffe://example.org/test2',
+            svid: createFakeJwtSvid('2'),
+            hint: 'hint2',
+          },
+        ],
+      }));
+
+      expect(await client.getSpiffeId()).toBe('spiffe://example.org/test1');
+    });
+
+    it('should cache the returned SPIFFE ID', async () => {
+      fetchJWTSVID.mockImplementation(() => ({
+        svids: [
+          {
+            spiffeId: 'spiffe://example.org/test',
+            svid: createFakeJwtSvid(),
+            hint: '',
+          },
+        ],
+      }));
+
+      expect(await client.getSpiffeId()).toBe('spiffe://example.org/test');
+      expect(await client.getSpiffeId()).toBe('spiffe://example.org/test');
+
+      expect(fetchJWTSVID).toHaveBeenCalledTimes(1);
+    });
+
+    it('should cache per filter', async () => {
+      fetchJWTSVID.mockImplementation(() => ({
+        svids: [
+          {
+            spiffeId: 'spiffe://example.org/test1',
+            svid: createFakeJwtSvid('1'),
+            hint: 'hint1',
+          },
+          {
+            spiffeId: 'spiffe://example.org/test2',
+            svid: createFakeJwtSvid('2'),
+            hint: 'hint2',
+          },
+        ],
+      }));
+
+      expect(await client.getSpiffeId({ hint: 'hint1' })).toBe('spiffe://example.org/test1');
+      expect(await client.getSpiffeId({ hint: 'hint2' })).toBe('spiffe://example.org/test2');
+
+      expect(fetchJWTSVID).toHaveBeenCalledTimes(2);
+    });
+
+    it('should filter for hint if provided', async () => {
+      fetchJWTSVID.mockImplementationOnce(() => ({
+        svids: [
+          {
+            spiffeId: 'spiffe://example.org/test1',
+            svid: createFakeJwtSvid('1'),
+            hint: 'hint1',
+          },
+          {
+            spiffeId: 'spiffe://example.org/test2',
+            svid: createFakeJwtSvid('2'),
+            hint: 'hint2',
+          },
+        ],
+      }));
+
+      expect(await client.getSpiffeId({ hint: 'hint2' })).toBe('spiffe://example.org/test2');
+    });
+
+    it('should filter for the SPIFFE ID', async () => {
+      fetchJWTSVID.mockImplementationOnce(() => ({
+        svids: [
+          {
+            spiffeId: 'spiffe://example.org/test1',
+            svid: createFakeJwtSvid(),
+            hint: '',
+          },
+        ],
+      }));
+
+      expect(await client.getSpiffeId({ spiffeId: 'spiffe://example.org/test1' })).toBe(
+        'spiffe://example.org/test1',
+      );
+
+      expect(fetchJWTSVID).toHaveBeenCalledWith(
+        expect.objectContaining({
+          spiffeId: 'spiffe://example.org/test1',
+        }),
+        expect.anything(),
+      );
+    });
+
+    it('should throw NoSvidError if no SVIDs are returned', async () => {
+      fetchJWTSVID.mockImplementationOnce(() => ({ svids: [] }));
+
+      await expect(client.getSpiffeId()).rejects.toThrow(NoSvidError);
+    });
+
+    it('should throw NoSvidError if call fails with PERMISSION_DENIED', async () => {
+      fetchJWTSVID.mockImplementation(() => {
+        throw new ConnectError('Permission denied', Code.PermissionDenied);
+      });
+
+      await using fastClient = new SpiffeClient({
+        connection: createMockTransport(),
+        retry: { enabled: false },
+      });
+
+      await expect(fastClient.getSpiffeId()).rejects.toThrow(NoSvidError);
     });
   });
 

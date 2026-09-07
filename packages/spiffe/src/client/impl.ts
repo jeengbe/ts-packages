@@ -23,6 +23,8 @@ import { connect as netConnect } from 'node:net';
 
 const JWT_SVID_CACHE_MAX_ENTRIES = 1_000;
 const JWT_SVID_CACHE_MAX_TTL_MS = 60_000;
+const SPIFFE_ID_CACHE_MAX_ENTRIES = 1_000;
+const SPIFFE_ID_CACHE_MAX_TTL_MS = 60_000;
 const VALIDATED_JWT_CACHE_MAX_ENTRIES = 1_000;
 const VALIDATED_JWT_CACHE_MAX_TTL_MS = 60_000;
 
@@ -31,6 +33,7 @@ const VALIDATED_JWT_CACHE_MAX_TTL_MS = 60_000;
  */
 export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   private readonly jwtSvidCache: SpiffeCache<JwtSvid>;
+  private readonly spiffeIdCache: SpiffeCache<string>;
   private readonly validatedJwtCache: SpiffeCache<ValidatedJwtSvid>;
 
   private readonly retryOptions: SpiffeClientRetryOptions | undefined;
@@ -59,6 +62,10 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
       jwtSvidCache: this.jwtSvidCache = new SpiffeCacheImpl<JwtSvid>({
         maxEntries: JWT_SVID_CACHE_MAX_ENTRIES,
         maxTtlMs: JWT_SVID_CACHE_MAX_TTL_MS,
+      }),
+      spiffeIdCache: this.spiffeIdCache = new SpiffeCacheImpl<string>({
+        maxEntries: SPIFFE_ID_CACHE_MAX_ENTRIES,
+        maxTtlMs: SPIFFE_ID_CACHE_MAX_TTL_MS,
       }),
       validatedJwtCache: this.validatedJwtCache = new SpiffeCacheImpl<ValidatedJwtSvid>({
         maxEntries: VALIDATED_JWT_CACHE_MAX_ENTRIES,
@@ -109,11 +116,36 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
           expiresAtMs,
         };
 
-        // Refresh at half of the remaining lifetime.
         return [jwt, Math.floor((expiresAtMs - Date.now()) / 2)];
       },
       signal,
     );
+  }
+
+  async getSpiffeId(filter?: SvidFilter, signal?: AbortSignal): Promise<string> {
+    const spiffeId = await this.spiffeIdCache.getOrCompute(
+      [filter?.hint ?? '', filter?.spiffeId ?? ''],
+      async (cacheSignal) => {
+        const svid = await this._getJwtSvid(['dummy'], filter, cacheSignal);
+
+        if (!svid) {
+          return null;
+        }
+
+        const expiresAtMs = getExpiresAtMs(getJwtClaims(svid.svid));
+        // https://github.com/spiffe/spiffe/blob/f97c46dfd0ff0d4e412cce5c73846a9ca32a99a2/standards/JWT-SVID.md#33-expiration-time Required
+        assert.ok(expiresAtMs !== null, 'JWT-SVID does not contain an "exp" claim');
+
+        return [svid.spiffeId, Math.floor((expiresAtMs - Date.now()) / 2)];
+      },
+      signal,
+    );
+
+    if (!spiffeId) {
+      throw new NoSvidError(filter);
+    }
+
+    return spiffeId;
   }
 
   async validateJwt(
@@ -134,7 +166,6 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
         // https://github.com/spiffe/spiffe/blob/f97c46dfd0ff0d4e412cce5c73846a9ca32a99a2/standards/JWT-SVID.md#33-expiration-time Required
         assert.ok(expiresAtMs !== null, 'JWT-SVID does not contain an "exp" claim');
 
-        // Never serve a cached validation past the token's own expiry.
         return [validated, expiresAtMs - Date.now()];
       },
       signal,
@@ -215,7 +246,9 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
 
   async close(): Promise<void> {
     this.jwtSvidCache.close();
+    this.spiffeIdCache.close();
     this.validatedJwtCache.close();
+
     this.sessionManager?.abort();
   }
 }

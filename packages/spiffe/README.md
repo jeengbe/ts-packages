@@ -176,6 +176,14 @@ async function authenticateRequest(req: Request) {
 }
 ```
 
+Use `getSpiffeId()` to look up the workload's own SPIFFE ID:
+
+```ts
+const spiffeId = await spiffe.getSpiffeId(); // spiffe://example.org/orders-worker
+```
+
+`getSpiffeId()` accepts an optional `SvidFilter` to select a specific SVID when the workload is entitled to more than one.
+
 ### Caching and Rotation
 
 Fetched SVIDs are cached for half of their remaining lifetime, capped at 60 seconds, and concurrent requests for the same audience and filter are deduplicated.
