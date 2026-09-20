@@ -1,5 +1,11 @@
 # @jeengbe/spiffe
 
+## 1.1.1
+
+### Patch Changes
+
+- [#21](https://github.com/jeengbe/ts-packages/pull/21) [`a4dd258`](https://github.com/jeengbe/ts-packages/commit/a4dd258a37000a2c08c5cbbabecd4973a310a1ad) - chore: update metadata
+
 ## 1.1.0
 
 ### Minor Changes

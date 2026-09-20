@@ -1,6 +1,6 @@
 {
   "name": "@jeengbe/prelude",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A small, dependency-free functional programming toolkit for TypeScript.",
   "keywords": [
     "either",

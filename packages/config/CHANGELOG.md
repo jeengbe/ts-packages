@@ -1,5 +1,14 @@
 # @jeengbe/config
 
+## 1.0.1
+
+### Patch Changes
+
+- [#21](https://github.com/jeengbe/ts-packages/pull/21) [`a4dd258`](https://github.com/jeengbe/ts-packages/commit/a4dd258a37000a2c08c5cbbabecd4973a310a1ad) - chore: update metadata
+
+- Updated dependencies [[`a4dd258`](https://github.com/jeengbe/ts-packages/commit/a4dd258a37000a2c08c5cbbabecd4973a310a1ad)]:
+  - @jeengbe/prelude@0.1.5
+
 ## 1.0.0
 
 ### Major Changes
