@@ -31,7 +31,11 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   });
 
   private readonly abortController = new AbortController();
-  private readonly api: Client<typeof SpiffeWorkloadAPI>;
+
+  /**
+   * The underlying gRPC client for the SPIFFE Workload API.
+   */
+  readonly api: Client<typeof SpiffeWorkloadAPI>;
 
   /**
    * Constructs a SPIFFE Client instance with the given socket. If no socket is provided, the

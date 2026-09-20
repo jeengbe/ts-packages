@@ -20,6 +20,17 @@ Values are serialized to string for storage in the cache. By default, `JSON.stri
 
 The package is published to [npm](https://www.npmjs.com/package/@jeengbe/cache) and [JSR](https://jsr.io/@jeengbe/cache) as `@jeengbe/cache`. Versions follow Semantic Versioning.
 
+```bash
+npm install @jeengbe/cache
+```
+
+```bash
+pnpm add @jeengbe/cache
+yarn add @jeengbe/cache
+bun add @jeengbe/cache
+deno add jsr:@jeengbe/cache
+```
+
 ## Gotta go fast, no time to read
 
 ```ts
@@ -340,3 +351,7 @@ new Cache<MyServiceCacheTypes>(cacheAdapter, undefined, {
   serialize: (value, key) => safeJsonSerialize(value, { whitelistTypes: [Date] }),
 });
 ```
+
+## License
+
+[MIT](LICENSE) Jesper Engberg

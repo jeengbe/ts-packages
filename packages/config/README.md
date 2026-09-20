@@ -16,6 +16,17 @@ Define your environment variables once as a schema, and get back a plain, fully 
 
 The package is published to [npm](https://www.npmjs.com/package/@jeengbe/config) and [JSR](https://jsr.io/@jeengbe/config) as `@jeengbe/config`. Versions follow Semantic Versioning.
 
+```bash
+npm install @jeengbe/config
+```
+
+```bash
+pnpm add @jeengbe/config
+yarn add @jeengbe/config
+bun add @jeengbe/config
+deno add jsr:@jeengbe/config
+```
+
 ## Usage
 
 ### Defining and loading a schema
@@ -134,3 +145,7 @@ const feature = ifEnabled('FEATURE_ENABLED', {
 ```
 
 This resolves to `{ enabled: true, apiKey: string }` when `FEATURE_ENABLED` is `'true'`, or `{ enabled: false }` otherwise.
+
+## License
+
+[MIT](LICENSE) Jesper Engberg
