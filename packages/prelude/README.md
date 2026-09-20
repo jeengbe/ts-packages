@@ -16,6 +16,17 @@ It provides an `Either` type for representing a value that's either a success or
 
 The package is published to [npm](https://www.npmjs.com/package/@jeengbe/prelude) and [JSR](https://jsr.io/@jeengbe/prelude) as `@jeengbe/prelude`. Versions follow Semantic Versioning.
 
+```bash
+npm install @jeengbe/prelude
+```
+
+```bash
+pnpm add @jeengbe/prelude
+yarn add @jeengbe/prelude
+bun add @jeengbe/prelude
+deno add jsr:@jeengbe/prelude
+```
+
 ## Usage
 
 ### `Either`
@@ -133,3 +144,7 @@ matchPair([error, value], {
   both: (e, v) => `error ${e}, but got a partial value: ${v}`,
 });
 ```
+
+## License
+
+[MIT](LICENSE) Jesper Engberg

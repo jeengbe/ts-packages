@@ -1,19 +1,28 @@
 {
   "name": "@jeengbe/spiffe",
   "version": "1.1.0",
-  "description": "A TypeScript library for working with SPIFFE workload identities.",
+  "description": "SPIFFE Workload API client for Node.js, Deno, and Bun. Fetch and validate JWT-SVIDs from SPIRE, with caching and retries.",
   "keywords": [
-    "JWT",
-    "KafkaJS",
-    "SPIFFE",
-    "SPIRE",
-    "SVID",
-    "TypeScript",
-    "Workload Identity",
-    "Workload Identity Federation",
-    "X.509",
-    "Zero Trust",
-    "mTLS"
+    "authentication",
+    "spiffe",
+    "spire",
+    "svid",
+    "jwt-svid",
+    "jwt",
+    "workload-api",
+    "workload-identity",
+    "workload-identity-federation",
+    "zero-trust",
+    "identity",
+    "node",
+    "nodejs",
+    "javascript",
+    "typescript",
+    "deno",
+    "bun",
+    "kafka",
+    "kafkajs",
+    "confluent"
   ],
   "homepage": "https://github.com/jeengbe/ts-packages/tree/master/packages/spiffe#readme",
   "bugs": {
@@ -68,7 +77,6 @@
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.13.0",
     "@jeengbe/scaffolding": "workspace:*",
-    "google-auth-library": "^10.9.0",
     "kafkajs": "^2.2.4",
     "mappersmith": "^2.47.0",
     "oxfmt": "catalog:",
@@ -78,14 +86,10 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
-    "google-auth-library": "^10.9.0",
     "kafkajs": "^2.2.4",
     "mappersmith": "^2.47.0"
   },
   "peerDependenciesMeta": {
-    "google-auth-library": {
-      "optional": true
-    },
     "kafkajs": {
       "optional": true
     },

@@ -1,7 +1,7 @@
 <h1 align="center">@jeengbe/spiffe</h1>
 <div align="center">
 
-A TypeScript library for working with SPIFFE workload identities.
+SPIFFE Workload API client for Node.js, Deno, and Bun. Fetch and validate JWT-SVIDs from SPIRE, with caching and retries.
 
 [![License](https://img.shields.io/npm/l/@jeengbe/spiffe)](https://github.com/jeengbe/ts-packages/blob/master/packages/spiffe/LICENSE)
 [![Version](https://img.shields.io/npm/v/@jeengbe/spiffe)](https://www.npmjs.com/package/@jeengbe/spiffe)
@@ -10,15 +10,55 @@ A TypeScript library for working with SPIFFE workload identities.
 
 </div>
 
-This package provides convenient helpers for integrating SPIFFE workload identities into TypeScript applications. Instead of dealing with Workload API protocol details, you can enjoy ready-to-use credentials and trust bundles.
+`@jeengbe/spiffe` is a SPIFFE SDK for TypeScript and JavaScript. It speaks with the [SPIFFE Workload API](https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/#spiffe-workload-api) exposed by a [SPIRE](https://spiffe.io/docs/latest/spire-about/) agent.
+
+- **Fetch JWT-SVIDs** for a given audience, with automatic caching and request deduplication.
+- **Validate incoming JWT-SVIDs** on the server, with a bounded LRU cache that never outlives a token's `exp`.
+- **Retry with exponential backoff** while the SPIRE agent socket isn't ready or the workload isn't registered yet.
+- **KafkaJS integration**: SASL `OAuthBearer` authentication and Confluent Schema Registry auth, driven by SPIFFE identity.
+- **Runs on Node.js, Deno, and Bun.** Fully typed, `AsyncDisposable`, zero configuration in a standard SPIRE deployment.
+
+Listed as the TypeScript/JavaScript library on
+[spiffe.io](https://spiffe.io/docs/latest/deploying/libraries/).
 
 ## Installation
 
 The package is published to [npm](https://www.npmjs.com/package/@jeengbe/spiffe) and [JSR](https://jsr.io/@jeengbe/spiffe) as `@jeengbe/spiffe`. Versions follow Semantic Versioning.
 
+```bash
+npm install @jeengbe/spiffe
+```
+
+```bash
+pnpm add @jeengbe/spiffe
+yarn add @jeengbe/spiffe
+bun add @jeengbe/spiffe
+deno add jsr:@jeengbe/spiffe
+```
+
+## Quick Start
+
+A Node.js service that authenticates its outgoing calls with a SPIFFE JWT-SVID:
+
+```ts
+import { SpiffeClient } from '@jeengbe/spiffe';
+
+await using spiffe = new SpiffeClient();
+
+const token = await spiffe.getJwt('orders-api');
+
+const res = await fetch('https://orders-api.internal/orders', {
+  headers: { authorization: `Bearer ${token}` },
+});
+```
+
+This assumes a SPIRE agent is running on the node and its Workload API socket is reachable by the workload. See [Connecting to the Workload API](#connecting-to-the-workload-api) for how the socket is resolved.
+
 ## Usage
 
-The client connects to the Workload API over gRPC. If no socket is provided, the client will attempt to connect to `process.env.SPIFFE_ENDPOINT_SOCKET`, or fall back to `unix:///tmp/spire-agent/public/api.sock`.
+### Connecting to the Workload API
+
+The client connects to the SPIFFE Workload API over gRPC. If no socket is provided, the client will attempt to connect to `process.env.SPIFFE_ENDPOINT_SOCKET`, or fall back to `unix:///tmp/spire-agent/public/api.sock`.
 
 ```ts
 const spiffe = new SpiffeClient();
@@ -48,7 +88,7 @@ const spiffe = new SpiffeClient(
 );
 ```
 
-Both forms accept an optional `SpiffeClientRetryOptions` as the last argument, to configure retries while fetching SVIDs (e.g. while the SPIRE agent socket isn't ready yet, or the workload isn't yet registered). `PermissionDenied` and `Unavailable` gRPC errors are retried with exponential backoff:
+Both forms accept an optional `SpiffeClientRetryOptions` as the last argument, to configure retries while fetching SVIDs (e.g. while the SPIRE agent socket isn't ready yet, or the workload isn't yet registered):
 
 ```ts
 const spiffe = new SpiffeClient(undefined, {
@@ -64,7 +104,7 @@ const spiffe = new SpiffeClient(undefined, {
 await using spiffe = new SpiffeClient();
 ```
 
-### JWT-SVIDs
+### Fetching a JWT-SVID
 
 `SpiffeClient` implements the `SpiffeJwtClient` interface.
 
@@ -89,6 +129,14 @@ const svid = await spiffe.getJwtSvid('orders-api');
 console.log(svid.spiffeId, svid.token, svid.expiresAtMs);
 ```
 
+Both `getJwt()` and `getJwtSvid()` accept an optional `hint` parameter to select a specific SVID when the agent issues more than one:
+
+```ts
+const token = await spiffe.getJwt('orders-api', 'public');
+```
+
+### Validating a JWT-SVID
+
 On the server, use `validateJwt()` to validate an incoming JWT-SVID bearer token. Returns `null` if the token is invalid.
 
 ```ts
@@ -106,11 +154,7 @@ async function authenticateRequest(req: Request) {
 }
 ```
 
-Both `getJwt()` and `getJwtSvid()` accept an optional `hint` parameter to select a specific SVID when the agent issues more than one:
-
-```ts
-const token = await spiffe.getJwt('orders-api', 'my-service');
-```
+### Caching and Rotation
 
 SVIDs are cached for half of their remaining TTL and concurrent requests for the same audience are deduplicated.
 
@@ -136,9 +180,9 @@ try {
 
 ## KafkaJS Integration
 
-The `@jeengbe/spiffe/kafkajs` entry point provides helpers for authenticating KafkaJS clients using JWT-SVIDs.
+The `@jeengbe/spiffe/kafkajs` entry point provides helpers for authenticating KafkaJS clients using SPIFFE JWT-SVIDs, so a Node.js producer or consumer authenticates to Kafka with its workload identity instead of a static secret.
 
-### SASL Authentication
+### Kafka SASL Authentication With SPIFFE
 
 Use `createKafkajsSaslMechanism()` to create a KafkaJS-compatible SASL `OAuthBearer` configuration. Pass it directly to the `sasl` option when constructing a `Kafka` instance:
 
@@ -161,7 +205,7 @@ createKafkajsSaslMechanism('kafka-cluster', {
 });
 ```
 
-### Schema Registry Middleware
+### Confluent Schema Registry SPIFFE Authentication
 
 Use `createKafkajsAuthMiddleware()` to create a [Mappersmith](https://github.com/tulios/mappersmith) middleware that attaches a SPIFFE JWT-SVID as a bearer `Authorization` token on outgoing requests:
 
@@ -184,3 +228,11 @@ createKafkajsAuthMiddleware('confluent-cloud', {
   'identity-pool-id': 'pool-xyz',
 });
 ```
+
+## X509-SVIDs/mTLS
+
+The library currently only provides higher-level methods for JWT-SVIDs. If you need X509-SVID support, you can directly use the `api` property on a `SpiffeClient` to access the raw gRPC API. Please open an issue with your use case on GitHub, so we can together model a proper abstraction.
+
+## License
+
+[MIT](LICENSE) Jesper Engberg
