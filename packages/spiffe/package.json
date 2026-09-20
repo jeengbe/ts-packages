@@ -1,6 +1,6 @@
 {
   "name": "@jeengbe/spiffe",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "SPIFFE Workload API client for Node.js, Deno, and Bun. Fetch and validate JWT-SVIDs from SPIRE, with caching and retries.",
   "keywords": [
     "authentication",
