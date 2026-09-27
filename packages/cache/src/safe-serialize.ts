@@ -84,6 +84,7 @@ function isFullyJsonSerializable(
       if (proto !== Object.prototype && proto !== null) return false;
 
       return Object.keys(value).every((key) => {
+        // oxlint-disable-next-line typescript/consistent-type-assertions -- as unknown is okay
         const keyValue = value[key as keyof typeof value] as unknown;
 
         if (keyValue === undefined) {

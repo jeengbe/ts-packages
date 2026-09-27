@@ -149,6 +149,7 @@ export function collectValidationResults<const U extends readonly ValidationResu
     );
   }
 
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- We do some type magic to map the runtime behaviour that TS cannot verify
   return (
     errors.length
       ? ValidationResult.fail({ errors })
@@ -167,5 +168,6 @@ export function arrayIncludes<const T extends string | number | boolean | null |
   arr: readonly T[],
   val: unknown,
 ): val is T {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- Safe for Array#includes
   return arr.includes(val as T);
 }

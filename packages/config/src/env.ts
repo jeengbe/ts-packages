@@ -400,6 +400,7 @@ export const env: Env = {
             loadValue,
           ).map(
             (mappingValues) =>
+              // oxlint-disable-next-line typescript/consistent-type-assertions -- TS cannot verify that these are the same
               ({
                 [discriminatorKey]: discriminatorValue,
                 ...mappingValues,
@@ -447,12 +448,14 @@ function resolveNode<S extends EnvSpec>(
   loadValue: (key: string) => string | undefined,
 ): ValidationResult<Pretty<ParseEnv<S>>> {
   if (spec instanceof EnvNode) {
-    return (spec as EnvNode<Pretty<ParseEnv<S>>>).validate(loadValue, path);
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- TS cannot verify that these are the same, but on the happy path, they're that value
+    return spec.validate(loadValue, path) as ValidationResult<Pretty<ParseEnv<S>>>;
   }
 
   return collectValidationResults(
     ...Object.entries(spec).map(([key, value]) =>
       resolveNode(`${path}.${key}`, value, loadValue).map((v) => [key, v] as const),
     ),
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- TS cannot verify that these are the same
   ).map((entries) => Object.fromEntries(entries) as Pretty<ParseEnv<S>>);
 }

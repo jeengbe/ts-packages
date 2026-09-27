@@ -174,6 +174,7 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
       return [];
     }
 
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- Only reachable if something was thrown
     throw lastRetriableErr!;
   }
 
@@ -208,7 +209,8 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
 
     const validated: ValidatedJwtSvid = {
       spiffeId: res.spiffeId,
-      claims: (res.claims as Partial<Record<string, unknown>> | undefined) ?? {},
+      // oxlint-disable-next-line typescript/no-non-null-assertion typescript/consistent-type-assertions -- The proto describes this field as required
+      claims: res.claims! as Partial<Record<string, unknown>>,
     };
 
     this.cacheValidatedJwt(cacheKey, validated);
@@ -257,7 +259,9 @@ function isRetriableConnectCode(code: Code): boolean {
 }
 
 function getJwtExpMs(token: string): number {
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- Expect a valid JWT from the Workload API
   const parsedPayload = JSON.parse(
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- Expect a valid JWT from the Workload API
     Buffer.from(token.split('.').at(1)!, 'base64url').toString('utf-8'),
   ) as { exp: number };
 

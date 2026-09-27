@@ -141,6 +141,7 @@ export class DiskCacheBackupSaver implements CacheBackupSaver {
     const cacheBackupString = fs.readFileSync(this.filePath, 'utf8');
 
     try {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- If someone tampers with the cache file, it's their fault
       return JSON.parse(cacheBackupString) as CacheBackup;
     } catch {
       // The cache file did not manage to save correctly, so don't restore it.
