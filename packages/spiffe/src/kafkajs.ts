@@ -1,5 +1,5 @@
 import { SpiffeClient } from './client/index.js';
-import type { SpiffeJwtClient } from './client/index.js';
+import type { SpiffeJwtClient, SvidFilter } from './client/index.js';
 import type { OauthbearerProviderResponse, SASLMechanismOptions } from 'kafkajs';
 import type { Request } from 'mappersmith' with {
   'resolution-mode': 'require',
@@ -32,7 +32,7 @@ import type { Request } from 'mappersmith' with {
 export function createKafkajsSaslMechanism(
   audience: string,
   extensions?: Record<string, string>,
-  hint?: string,
+  filter?: SvidFilter,
   spiffe: SpiffeJwtClient | (() => SpiffeJwtClient) = () => new SpiffeClient(),
 ): SASLMechanismOptions<'oauthbearer'> {
   const spiffeClient = typeof spiffe === 'function' ? spiffe() : spiffe;
@@ -41,7 +41,7 @@ export function createKafkajsSaslMechanism(
     mechanism: 'oauthbearer',
     async oauthBearerProvider(): Promise<OauthbearerProviderResponse> {
       return {
-        value: await spiffeClient.getJwt(audience, hint),
+        value: await spiffeClient.getJwt(audience, filter),
         // @ts-expect-error -- Untyped SASL extensions type
         extensions,
       };
@@ -79,7 +79,7 @@ export function createKafkajsSaslMechanism(
 export function createKafkajsAuthMiddleware<R extends MappersmithRequest<R> = Request>(
   audience: string,
   headers?: Record<string, string>,
-  hint?: string,
+  filter?: SvidFilter,
   spiffe: SpiffeJwtClient | (() => SpiffeJwtClient) = () => new SpiffeClient(),
 ): MappersmithMiddleware<R> {
   const spiffeClient = typeof spiffe === 'function' ? spiffe() : spiffe;
@@ -91,7 +91,7 @@ export function createKafkajsAuthMiddleware<R extends MappersmithRequest<R> = Re
 
       return req.enhance({
         headers: {
-          Authorization: `Bearer ${await spiffeClient.getJwt(audience, hint)}`,
+          Authorization: `Bearer ${await spiffeClient.getJwt(audience, filter)}`,
           ...headers,
         },
       });
