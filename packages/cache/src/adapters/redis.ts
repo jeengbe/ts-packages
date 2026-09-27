@@ -20,12 +20,13 @@ export class RedisCacheAdapter implements CacheAdapter {
   private async _mget(keys: readonly string[]): Promise<(string | undefined)[]> {
     if (keys.length === 0) return [];
 
-    return (await this.client.mget(keys as string[])).map((val) => val ?? undefined);
+    return (await this.client.mget(keys.concat())).map((val) => val ?? undefined);
   }
 
   async mset(entries: readonly [key: string, value: string, ttlMs: number][]): Promise<void> {
     try {
       if (entries.length === 1) {
+        // oxlint-disable-next-line typescript/no-non-null-assertion -- entries.length === 1
         const [key, value, ttlMs] = entries[0]!;
 
         await this._set(key, value, ttlMs);
@@ -150,6 +151,7 @@ export class RedisCacheAdapter implements CacheAdapter {
 
     const results = await pipeline.exec();
 
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- Pipeline does not return null
     return results!.map(([, result]) => result === 1);
   }
 

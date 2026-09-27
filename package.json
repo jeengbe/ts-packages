@@ -29,7 +29,7 @@
     "publint": "^0.3.22",
     "vitest": "catalog:"
   },
-  "packageManager": "pnpm@11.13.1",
+  "packageManager": "pnpm@12.6.0",
   "engines": {
     "node": ">=24"
   }

@@ -19,17 +19,21 @@ export interface CacheOptions<Entries extends Record<string, unknown> = Record<s
   deserialize?: Deserialize<Entries>;
 }
 
-type Serialize<Entries extends Record<string, unknown>> = (
+type Serialize<Entries extends Record<string, unknown>> = <
+  K extends keyof Entries & string = keyof Entries & string,
+>(
   this: void,
-  val: Entries[keyof Entries & string],
-  key: keyof Entries & string,
+  val: Entries[K],
+  key: K,
 ) => string;
 
-type Deserialize<Entries extends Record<string, unknown>> = (
+type Deserialize<Entries extends Record<string, unknown>> = <
+  K extends keyof Entries & string = keyof Entries & string,
+>(
   this: void,
   val: string,
-  key: keyof Entries & string,
-) => Entries[keyof Entries & string];
+  key: K,
+) => Entries[K];
 
 /**
  * Events emitted by the {@link Cache} class.
@@ -81,6 +85,7 @@ export class Cache<
 
     ({
       serialize: this.serialize = defaultSerialize,
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- Default deserialise is JSON.parse, so we need to trust input validity
       deserialize: this.deserialize = (defaultDeserialize as Deserialize<Entries>),
     } = options);
   }
@@ -114,7 +119,8 @@ export class Cache<
     }
 
     this.emit('read', key, true, CacheOperation.Get);
-    return this.deserialize(res, key) as Entries[K];
+
+    return this.deserialize(res, key);
   }
 
   /**
@@ -139,6 +145,7 @@ export class Cache<
     -readonly [I in keyof K]: Entries[K[I]] | undefined;
   }> {
     if (keys.length === 0) {
+      // oxlint-disable-next-line typescript/consistent-type-assertions -- Empty array
       return [] as {
         -readonly [I in keyof K]: Entries[K[I]] | undefined;
       };
@@ -153,14 +160,18 @@ export class Cache<
       'The cache adapter returned a different number of results than requested.',
     );
 
-    return res.map((r, i) => {
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- Type magic
+    return res.map((r, i): Entries[keyof Entries & string] | undefined => {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- res.length === keys.length, and keys is readonly string[]
+      const key = keys[i]!;
+
       if (r === undefined) {
-        this.emit('read', keys[i]!, false, CacheOperation.Mget);
+        this.emit('read', key, false, CacheOperation.Mget);
         return undefined;
       }
 
-      this.emit('read', keys[i]!, true, CacheOperation.Mget);
-      return this.deserialize(r, keys[i]!);
+      this.emit('read', key, true, CacheOperation.Mget);
+      return this.deserialize(r, key);
     }) as {
       -readonly [I in keyof K]: Entries[K[I]] | undefined;
     };
@@ -312,6 +323,7 @@ export class Cache<
       'The cache adapter returned a different number of results than requested.',
     );
 
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- res.length === 1
     return res[0]!;
   }
 
@@ -374,7 +386,8 @@ export class Cache<
     }
 
     this.emit('read', key, true, CacheOperation.Cached);
-    return this.deserialize(res, key) as Entries[K];
+
+    return this.deserialize(res, key);
   }
 
   /**
@@ -422,17 +435,21 @@ export class Cache<
     const missingIndices: number[] = [];
 
     cachedResults.forEach((result, i) => {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- keys.length === data.length
+      const key = keys[i]!;
+
       if (result === undefined) {
-        this.emit('read', keys[i]!, false, CacheOperation.Mcached);
+        this.emit('read', key, false, CacheOperation.Mcached);
         missingIndices.push(i);
       } else {
-        this.emit('read', keys[i]!, true, CacheOperation.Mcached);
-        toReturn[i] = this.deserialize(result, keys[i]!) as Entries[K];
+        this.emit('read', key, true, CacheOperation.Mcached);
+        toReturn[i] = this.deserialize(result, key);
       }
     });
 
     if (!missingIndices.length) return toReturn;
 
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- missingIndices comes from `cachedResults.forEach`, which === keys.keys === data.length
     const missingData = missingIndices.map((index) => data[index]!);
     const producedValues = await producer(missingData);
 
@@ -443,13 +460,15 @@ export class Cache<
     );
 
     const toStore = Array.from<[string, string, number]>({ length: producedValues.length });
-
     producedValues.forEach((value, index) => {
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- producedValues.length === missingData.length === missingIndices.length
       const returnIndex = missingIndices[index]!;
 
       toReturn[returnIndex] = value;
       toStore[index] = [
+        // oxlint-disable-next-line typescript/no-non-null-assertion -- missingIndices comes from `cachedResults.forEach`, which === keys.keys === cacheKeys.length
         cacheKeys[returnIndex]!,
+        // oxlint-disable-next-line typescript/no-non-null-assertion -- missingIndices comes from `cachedResults.forEach`, which === keys.keys
         this.serialize(value, keys[returnIndex]!),
         ttlToMs(ttl, [value, index]),
       ];

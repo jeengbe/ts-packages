@@ -12,6 +12,7 @@ async function getPackageDirs(): Promise<readonly string[]> {
     if (!entry.isDirectory()) continue;
 
     const packageJsonUrl = new URL(`${entry.name}/package.json`, packagesDir);
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- package.json is always a JSON object file with optional "private" property
     const packageJson = JSON.parse(await readFile(packageJsonUrl, 'utf8')) as {
       private?: boolean;
     };

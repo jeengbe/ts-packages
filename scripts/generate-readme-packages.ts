@@ -21,6 +21,7 @@ async function getPackages(): Promise<readonly PackageInfo[]> {
     if (!entry.isDirectory()) continue;
 
     const packageJsonUrl = new URL(`${entry.name}/package.json`, packagesDir);
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- package.json is always a JSON object file with these properties
     const packageJson = JSON.parse(await readFile(packageJsonUrl, 'utf8')) as {
       name: string;
       description?: string;

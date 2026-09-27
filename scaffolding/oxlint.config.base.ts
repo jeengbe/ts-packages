@@ -39,6 +39,8 @@ export const base = defineConfig({
     'unicorn/consistent-existence-index-check': 'error', // Uniformity
     'typescript/consistent-generic-constructors': 'error', // Uniformity
     'typescript/consistent-indexed-object-style': 'error', // Uniformity
+    'typescript/consistent-type-assertions': ['error', { assertionStyle: 'never' }], // Type assertions bypass the type checker
+    'typescript/no-non-null-assertion': 'error', // Non-null assertions bypass the type checker
     'unicorn/prefer-node-protocol': 'error', // Explicit node: prefix is recommended on platforms like Deno
   },
   overrides: [
@@ -49,6 +51,8 @@ export const base = defineConfig({
         'vitest/no-conditional-expect': 'off', // Useful for testing multiple properties of a thrown error
         'vitest/expect-expect': 'off', // For some methods, it's enough to check that they don't throw
         'unicorn/consistent-assert': 'off', // "assert" is fine for brevity
+        'typescript/consistent-type-assertions': 'off', // Never mind in test files
+        'typescript/no-non-null-assertion': 'off', // Non-null assertions are often used in test files
       },
     },
   ],

@@ -195,7 +195,7 @@ export abstract class EitherBase<L, R> {
 }
 
 function toEitherPromise<L, R>(e: EitherBase<L, R>): Promise<Either<L, R>> {
-  // EitherBase is abstract with only Left/Right as concrete subclasses; the cast is always valid.
+  // oxlint-disable-next-line typescript/consistent-type-assertions -- EitherBase is abstract with only Left/Right as known concrete subclasses; the cast is always valid.
   return Promise.resolve(e as unknown as Either<L, R>);
 }
 
