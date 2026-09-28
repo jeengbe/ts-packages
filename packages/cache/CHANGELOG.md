@@ -1,5 +1,11 @@
 # @jeengbe/cache
 
+## 7.0.11
+
+### Patch Changes
+
+- [#23](https://github.com/jeengbe/ts-packages/pull/23) [`98a4d73`](https://github.com/jeengbe/ts-packages/commit/98a4d73bb78e39563bd124c182945a88c58daac8) - fix: update serialiser signature
+
 ## 7.0.10
 
 ### Patch Changes
