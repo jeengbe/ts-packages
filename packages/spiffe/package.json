@@ -71,7 +71,7 @@
     "@connectrpc/connect": "^2.1.2",
     "@connectrpc/connect-node": "^2.1.2",
     "@isaacs/ttlcache": "^2.1.4",
-    "lru-cache": "^11.5.2"
+    "p-retry": "^8.0.1"
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "^2.13.0",

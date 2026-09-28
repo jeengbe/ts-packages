@@ -37,11 +37,7 @@ async function main(): Promise<void> {
             threshold: '1%',
           },
         },
-        patch: {
-          default: {
-            target: 'auto',
-          },
-        },
+        patch: 'off',
       },
     },
     component_management: {

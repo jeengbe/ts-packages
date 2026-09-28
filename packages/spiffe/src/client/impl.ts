@@ -1,181 +1,119 @@
+import type {
+  JWTSVID,
+  JWTSVIDResponse,
+  ValidateJWTSVIDResponse,
+  X509SVID,
+} from '../proto/workloadapi_pb.js';
 import { SpiffeWorkloadAPI } from '../proto/workloadapi_pb.js';
+import { SpiffeCache, SpiffeCacheImpl } from './cache.js';
 import { NoSvidError } from './error.js';
-import { SpiffeJwtClient } from './interface.js';
+import { SpiffeJwtClient, SvidFilter } from './interface.js';
+import { retry } from './retry.js';
 import type {
   JwtSvid,
-  ParsedJwtSvid,
+  SpiffeClientOptions,
   SpiffeClientRetryOptions,
   ValidatedJwtSvid,
 } from './types.js';
 import type { Client, Transport } from '@connectrpc/connect';
 import { Code, ConnectError, createClient } from '@connectrpc/connect';
 import { createGrpcTransport, Http2SessionManager } from '@connectrpc/connect-node';
-import { TTLCache } from '@isaacs/ttlcache';
-import { LRUCache } from 'lru-cache';
+import assert from 'node:assert/strict';
 import { connect as netConnect } from 'node:net';
-import { setTimeout } from 'node:timers/promises';
 
-const VALIDATED_JWT_CACHE_MAX = 1_000;
+const JWT_SVID_CACHE_MAX_ENTRIES = 1_000;
+const JWT_SVID_CACHE_MAX_TTL_MS = 60_000;
+const VALIDATED_JWT_CACHE_MAX_ENTRIES = 1_000;
 const VALIDATED_JWT_CACHE_MAX_TTL_MS = 60_000;
 
 /**
  * The SPIFFE Client provides convenience APIs for interacting with the SPIFFE Workload API.
  */
 export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
-  private readonly jwtSvidCache = new TTLCache<string, ParsedJwtSvid>();
-  private readonly jwtSvidsInFlight = new Map<string, Promise<readonly JwtSvid[]>>();
+  private readonly jwtSvidCache: SpiffeCache<JwtSvid>;
+  private readonly validatedJwtCache: SpiffeCache<ValidatedJwtSvid>;
 
-  private readonly validatedJwtCache = new LRUCache<string, ValidatedJwtSvid>({
-    max: VALIDATED_JWT_CACHE_MAX,
-    ttl: VALIDATED_JWT_CACHE_MAX_TTL_MS,
-  });
+  private readonly retryOptions: SpiffeClientRetryOptions | undefined;
 
-  private readonly abortController = new AbortController();
+  /**
+   * Only set when this client created its own connection (i.e. was not given a transport), so
+   * that `close()` never tears down a caller-owned transport.
+   */
+  private readonly sessionManager: Http2SessionManager | undefined;
 
   /**
    * The underlying gRPC client for the SPIFFE Workload API.
    */
   readonly api: Client<typeof SpiffeWorkloadAPI>;
 
-  /**
-   * Constructs a SPIFFE Client instance with the given socket. If no socket is provided, the
-   * `SPIFFE_ENDPOINT_SOCKET` environment variable will be used, and if neither are set, defaults
-   * to `unix:///tmp/spire-agent/public/api.sock`.
-   *
-   * @see https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Workload_Endpoint.md#4-locating-the-endpoint
-   */
-  constructor(socket?: string, retryOptions?: SpiffeClientRetryOptions);
+  constructor(options: SpiffeClientOptions = {}) {
+    if (typeof options.connection === 'object') {
+      this.sessionManager = undefined;
+      this.api = createClient(SpiffeWorkloadAPI, options.connection);
+    } else {
+      this.sessionManager = createSessionManagerFromSocket(resolveSocket(options.connection));
+      this.api = createClient(SpiffeWorkloadAPI, createWorkloadGrpcTransport(this.sessionManager));
+    }
 
-  /**
-   * Constructs a SPIFFE Client instance with the given gRPC transport.
-   *
-   * (Do not forget to set the `workload.spiffe.io` gRPC metadata to `true` in the options.)
-   *
-   * @see https://github.com/spiffe/spiffe/blob/main/standards/SPIFFE_Workload_Endpoint.md
-   */
-  constructor(transport: Transport, retryOptions?: SpiffeClientRetryOptions);
-
-  constructor(
-    socketOrTransport?: string | Transport,
-    private readonly retryOptions: SpiffeClientRetryOptions = {},
-  ) {
-    this.api = createClient(SpiffeWorkloadAPI, resolveGrpcTransport(socketOrTransport));
+    ({
+      jwtSvidCache: this.jwtSvidCache = new SpiffeCacheImpl<JwtSvid>({
+        maxEntries: JWT_SVID_CACHE_MAX_ENTRIES,
+        maxTtlMs: JWT_SVID_CACHE_MAX_TTL_MS,
+      }),
+      validatedJwtCache: this.validatedJwtCache = new SpiffeCacheImpl<ValidatedJwtSvid>({
+        maxEntries: VALIDATED_JWT_CACHE_MAX_ENTRIES,
+        maxTtlMs: VALIDATED_JWT_CACHE_MAX_TTL_MS,
+      }),
+      retry: this.retryOptions,
+    } = options);
   }
 
   async getJwt(
     audience: string | readonly string[],
-    hint?: string,
+    filter?: SvidFilter,
     signal?: AbortSignal,
   ): Promise<string> {
-    return (await this.getJwtSvid(audience, hint, signal)).token;
+    const svid = await this.getJwtSvid(audience, filter, signal);
+
+    if (!svid) {
+      throw new NoSvidError(filter);
+    }
+
+    return svid.token;
   }
 
   async getJwtSvid(
     audience: string | readonly string[],
-    hint?: string,
+    filter?: SvidFilter,
     signal?: AbortSignal,
-  ): Promise<ParsedJwtSvid> {
+  ): Promise<JwtSvid | null> {
     const aud = typeof audience === 'string' ? [audience] : audience;
-    const cacheKey = [aud.join('|'), hint ?? ''].join(':');
 
-    const cached = this.jwtSvidCache.get(cacheKey);
+    return this.jwtSvidCache.getOrCompute(
+      [...aud.toSorted(), filter?.hint ?? '', filter?.spiffeId ?? ''],
+      async (cacheSignal) => {
+        const svid = await this._getJwtSvid(aud, filter, cacheSignal);
 
-    if (cached) {
-      return cached;
-    }
-
-    const svid = (await this.listJwtSvids(cacheKey, aud, hint, signal)).at(0);
-
-    if (!svid) {
-      throw new NoSvidError('JWT', hint);
-    }
-
-    const expiresAtMs = getJwtExpMs(svid.token);
-    const parsed: ParsedJwtSvid = {
-      ...svid,
-      expiresAtMs,
-    };
-
-    const ttlRemainingMs = expiresAtMs - Date.now();
-    if (ttlRemainingMs > 0) {
-      this.jwtSvidCache.set(cacheKey, parsed, {
-        ttl: Math.ceil(ttlRemainingMs / 2),
-      });
-    }
-
-    return parsed;
-  }
-
-  private async listJwtSvids(
-    cacheKey: string,
-    audience: readonly string[],
-    hint?: string,
-    signal?: AbortSignal,
-  ): Promise<readonly JwtSvid[]> {
-    let inFlight = this.jwtSvidsInFlight.get(cacheKey);
-
-    if (!inFlight) {
-      inFlight = this._listJwtSvids(audience, hint, signal).finally(() => {
-        this.jwtSvidsInFlight.delete(cacheKey);
-      });
-      this.jwtSvidsInFlight.set(cacheKey, inFlight);
-    }
-
-    return await inFlight;
-  }
-
-  private async _listJwtSvids(
-    audience: readonly string[],
-    hint?: string,
-    signal?: AbortSignal,
-  ): Promise<readonly JwtSvid[]> {
-    const { maxAttempts = 6, initialDelayMs = 1_000, maxDelayMs = 30_000 } = this.retryOptions;
-    const combinedSignal = this.combinedSignal(signal);
-
-    let lastRetriableErr: ConnectError | undefined;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      if (attempt > 0) {
-        const delay = Math.min(initialDelayMs * 2 ** (attempt - 1), maxDelayMs);
-
-        await setTimeout(delay, undefined, { signal: combinedSignal });
-      }
-
-      try {
-        const res = await this.api.fetchJWTSVID(
-          {
-            audience: [...audience],
-            spiffeId: '',
-          },
-          { signal: combinedSignal },
-        );
-
-        return res.svids
-          .filter((svid) => !hint || svid.hint === hint)
-          .map(
-            (s): JwtSvid => ({
-              spiffeId: s.spiffeId,
-              token: s.svid,
-            }),
-          );
-      } catch (err) {
-        if (err instanceof ConnectError && isRetriableConnectCode(err.code)) {
-          lastRetriableErr = err;
-          continue;
+        if (!svid) {
+          return null;
         }
 
-        throw err;
-      }
-    }
+        const expiresAtMs = getExpiresAtMs(getJwtClaims(svid.svid));
+        // https://github.com/spiffe/spiffe/blob/f97c46dfd0ff0d4e412cce5c73846a9ca32a99a2/standards/JWT-SVID.md#33-expiration-time Required
+        assert.ok(expiresAtMs !== null, 'JWT-SVID does not contain an "exp" claim');
 
-    // After exhausting retries, preserve the original PERMISSION_DENIED behaviour so the
-    // caller gets NoSvidError rather than a raw ConnectError.
-    if (lastRetriableErr?.code === Code.PermissionDenied) {
-      return [];
-    }
+        const jwt: JwtSvid = {
+          spiffeId: svid.spiffeId,
+          token: svid.svid,
+          hint: svid.hint || undefined, // Empty hint -> gRPC undefined
+          expiresAtMs,
+        };
 
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- Only reachable if something was thrown
-    throw lastRetriableErr!;
+        // Refresh at half of the remaining lifetime.
+        return [jwt, Math.floor((expiresAtMs - Date.now()) / 2)];
+      },
+      signal,
+    );
   }
 
   async validateJwt(
@@ -183,57 +121,92 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     token: string,
     signal?: AbortSignal,
   ): Promise<ValidatedJwtSvid | null> {
-    const cacheKey = `${token}:${expectedAudience}`;
-    const cached = this.validatedJwtCache.get(cacheKey);
+    return this.validatedJwtCache.getOrCompute(
+      [token, expectedAudience],
+      async (cacheSignal) => {
+        const validated = await this._validateJwt(expectedAudience, token, cacheSignal);
 
-    if (cached) {
-      return cached;
+        if (!validated) {
+          return null;
+        }
+
+        const expiresAtMs = getExpiresAtMs(validated.claims);
+        // https://github.com/spiffe/spiffe/blob/f97c46dfd0ff0d4e412cce5c73846a9ca32a99a2/standards/JWT-SVID.md#33-expiration-time Required
+        assert.ok(expiresAtMs !== null, 'JWT-SVID does not contain an "exp" claim');
+
+        // Never serve a cached validation past the token's own expiry.
+        return [validated, expiresAtMs - Date.now()];
+      },
+      signal,
+    );
+  }
+
+  private async _getJwtSvid(
+    aud: readonly string[],
+    filter: SvidFilter | undefined,
+    signal: AbortSignal,
+  ): Promise<JWTSVID | undefined> {
+    let res: JWTSVIDResponse;
+    try {
+      res = await retry(
+        (retrySignal) =>
+          this.api.fetchJWTSVID(
+            {
+              audience: [...aud],
+              spiffeId: filter?.spiffeId ?? '',
+            },
+            retrySignal ? { signal: retrySignal } : undefined,
+          ),
+        this.retryOptions,
+        (err) => err instanceof ConnectError && isRetriableFetchSvidErrorCode(err.code),
+        signal,
+      );
+    } catch (err) {
+      if (err instanceof ConnectError && err.code === Code.PermissionDenied) {
+        // PERMISSION_DENIED means no SVID
+        return undefined;
+      }
+
+      throw err;
     }
 
-    let res;
+    return getFirstSvid(res.svids, filter);
+  }
+
+  private async _validateJwt(
+    expectedAudience: string,
+    token: string,
+    signal: AbortSignal,
+  ): Promise<ValidatedJwtSvid | null> {
+    let res: ValidateJWTSVIDResponse;
     try {
-      res = await this.api.validateJWTSVID(
-        {
-          audience: expectedAudience,
-          svid: token,
-        },
-        { signal: this.combinedSignal(signal) },
+      res = await retry(
+        (retrySignal) =>
+          this.api.validateJWTSVID(
+            {
+              audience: expectedAudience,
+              svid: token,
+            },
+            retrySignal ? { signal: retrySignal } : undefined,
+          ),
+        this.retryOptions,
+        (err) => err instanceof ConnectError && isRetriableValidateJwtErrorCode(err.code),
+        signal,
       );
     } catch (err) {
       if (err instanceof ConnectError && err.code === Code.InvalidArgument) {
+        // INVALID_ARGUMENT means the token is invalid or expired
         return null;
       }
 
       throw err;
     }
 
-    const validated: ValidatedJwtSvid = {
+    return {
       spiffeId: res.spiffeId,
       // oxlint-disable-next-line typescript/no-non-null-assertion typescript/consistent-type-assertions -- The proto describes this field as required
       claims: res.claims! as Partial<Record<string, unknown>>,
     };
-
-    this.cacheValidatedJwt(cacheKey, validated);
-
-    return validated;
-  }
-
-  private cacheValidatedJwt(cacheKey: string, validated: ValidatedJwtSvid): void {
-    const exp = validated.claims['exp'];
-
-    if (typeof exp !== 'number') {
-      return;
-    }
-
-    const ttlRemainingMs = exp * 1000 - Date.now();
-
-    if (ttlRemainingMs <= 0) {
-      return;
-    }
-
-    this.validatedJwtCache.set(cacheKey, validated, {
-      ttl: Math.min(ttlRemainingMs, VALIDATED_JWT_CACHE_MAX_TTL_MS),
-    });
   }
 
   async [Symbol.asyncDispose](): Promise<void> {
@@ -241,49 +214,19 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
   }
 
   async close(): Promise<void> {
-    this.abortController.abort();
-    this.validatedJwtCache.clear();
-  }
-
-  private combinedSignal(signal?: AbortSignal): AbortSignal {
-    return signal
-      ? AbortSignal.any([signal, this.abortController.signal])
-      : this.abortController.signal;
+    this.jwtSvidCache.close();
+    this.validatedJwtCache.close();
+    this.sessionManager?.abort();
   }
 }
 
-function isRetriableConnectCode(code: Code): boolean {
-  // PermissionDenied: workload not yet registered in SPIRE (transient at pod startup)
-  // Unavailable: SPIRE agent socket not ready yet
-  return code === Code.PermissionDenied || code === Code.Unavailable;
+function resolveSocket(socket?: string): string {
+  return (
+    socket ?? process.env['SPIFFE_ENDPOINT_SOCKET'] ?? 'unix:///tmp/spire-agent/public/api.sock'
+  );
 }
 
-function getJwtExpMs(token: string): number {
-  // oxlint-disable-next-line typescript/consistent-type-assertions -- Expect a valid JWT from the Workload API
-  const parsedPayload = JSON.parse(
-    // oxlint-disable-next-line typescript/no-non-null-assertion -- Expect a valid JWT from the Workload API
-    Buffer.from(token.split('.').at(1)!, 'base64url').toString('utf-8'),
-  ) as { exp: number };
-
-  return parsedPayload.exp * 1000;
-}
-
-function resolveGrpcTransport(socketOrTransport?: string | Transport): Transport {
-  if (typeof socketOrTransport === 'object') {
-    return socketOrTransport;
-  }
-
-  return createGrpcTransportFromSocket(socketOrTransport);
-}
-
-function createGrpcTransportFromSocket(socketOrTransport?: string): Transport {
-  const socket =
-    socketOrTransport ??
-    process.env['SPIFFE_ENDPOINT_SOCKET'] ??
-    'unix:///tmp/spire-agent/public/api.sock';
-
-  const sessionManager = createSessionManagerFromSocket(socket);
-
+function createWorkloadGrpcTransport(sessionManager: Http2SessionManager): Transport {
   return createGrpcTransport({
     baseUrl: 'http://localhost:0',
     sessionManager,
@@ -311,4 +254,40 @@ function createSessionManagerFromSocket(socket: string): Http2SessionManager {
   }
 
   throw new Error(`Unsupported socket format: ${socket}. Only unix:// and tcp:// are supported.`);
+}
+
+function getJwtClaims(token: string): Partial<Record<string, unknown>> {
+  // oxlint-disable-next-line typescript/no-non-null-assertion typescript/consistent-type-assertions -- Expect a valid JWT from the Workload API
+  return JSON.parse(Buffer.from(token.split('.').at(1)!, 'base64url').toString('utf-8')) as Partial<
+    Record<string, unknown>
+  >;
+}
+
+function getExpiresAtMs(claims: Partial<Record<string, unknown>>): number | null {
+  const exp = claims['exp'];
+
+  if (typeof exp !== 'number') {
+    return null;
+  }
+
+  return exp * 1000;
+}
+
+function getFirstSvid<T extends JWTSVID | X509SVID>(
+  svids: readonly T[],
+  filter?: SvidFilter,
+): T | undefined {
+  // The Workload API can filter by SPIFFE ID already.
+  return svids.find((s) => !filter?.hint || s.hint === filter.hint);
+}
+
+function isRetriableFetchSvidErrorCode(code: Code): boolean {
+  // PermissionDenied: workload not yet registered in SPIRE (transient at pod startup)
+  // Unavailable: SPIRE agent socket not ready yet
+  return code === Code.PermissionDenied || code === Code.Unavailable;
+}
+
+function isRetriableValidateJwtErrorCode(code: Code): boolean {
+  // Unavailable: SPIRE agent socket not ready yet
+  return code === Code.Unavailable;
 }

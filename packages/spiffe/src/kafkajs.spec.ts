@@ -28,13 +28,13 @@ describe('createKafkajsSaslMechanism', () => {
     const sasl = createKafkajsSaslMechanism(
       'kafka-cluster',
       { logicalCluster: 'lkc-abc123' },
-      'my-hint',
+      { hint: 'my-hint' },
       spiffe,
     );
 
     const result = await sasl.oauthBearerProvider();
 
-    expect(spiffe.getJwt).toHaveBeenCalledWith('kafka-cluster', 'my-hint');
+    expect(spiffe.getJwt).toHaveBeenCalledWith('kafka-cluster', { hint: 'my-hint' });
     expect(result).toEqual({ value: 'the-jwt', extensions: { logicalCluster: 'lkc-abc123' } });
   });
 });
@@ -66,12 +66,12 @@ describe('createKafkajsAuthMiddleware', () => {
       createKafkajsAuthMiddleware(
         'kafka-cluster',
         { 'target-sr-cluster': 'lsrc-abc123' },
-        'my-hint',
+        { hint: 'my-hint' },
         spiffe,
       ),
     );
 
-    expect(spiffe.getJwt).toHaveBeenCalledWith('kafka-cluster', 'my-hint');
+    expect(spiffe.getJwt).toHaveBeenCalledWith('kafka-cluster', { hint: 'my-hint' });
     expect(result.headers()).toEqual({
       authorization: 'Bearer the-jwt',
       'target-sr-cluster': 'lsrc-abc123',

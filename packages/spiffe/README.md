@@ -13,7 +13,7 @@ SPIFFE Workload API client for Node.js, Deno, and Bun. Fetch and validate JWT-SV
 `@jeengbe/spiffe` is a SPIFFE SDK for TypeScript and JavaScript. It speaks with the [SPIFFE Workload API](https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/#spiffe-workload-api) exposed by a [SPIRE](https://spiffe.io/docs/latest/spire-about/) agent.
 
 - **Fetch JWT-SVIDs** for a given audience, with automatic caching and request deduplication.
-- **Validate incoming JWT-SVIDs** on the server, with a bounded LRU cache that never outlives a token's `exp`.
+- **Validate incoming JWT-SVIDs** on the server, with a bounded cache that never outlives a token's `exp`.
 - **Retry with exponential backoff** while the SPIRE agent socket isn't ready or the workload isn't registered yet.
 - **KafkaJS integration**: SASL `OAuthBearer` authentication and Confluent Schema Registry auth, driven by SPIFFE identity.
 - **Runs on Node.js, Deno, and Bun.** Fully typed, `AsyncDisposable`, zero configuration in a standard SPIRE deployment.
@@ -58,25 +58,25 @@ This assumes a SPIRE agent is running on the node and its Workload API socket is
 
 ### Connecting to the Workload API
 
-The client connects to the SPIFFE Workload API over gRPC. If no socket is provided, the client will attempt to connect to `process.env.SPIFFE_ENDPOINT_SOCKET`, or fall back to `unix:///tmp/spire-agent/public/api.sock`.
+The client connects to the SPIFFE Workload API over gRPC. If no `connection` is provided, the client will attempt to connect to `process.env.SPIFFE_ENDPOINT_SOCKET`, or fall back to `unix:///tmp/spire-agent/public/api.sock`.
 
 ```ts
 const spiffe = new SpiffeClient();
 ```
 
-To specify a socket explicitly:
+To specify a socket explicitly, pass a `unix://` or `tcp://` address:
 
 ```ts
-const spiffe = new SpiffeClient('unix:///path/to/api.sock');
+const spiffe = new SpiffeClient({ connection: 'unix:///path/to/api.sock' });
 ```
 
-For advanced gRPC configuration (e.g. custom channel credentials), construct your own `@connectrpc/connect` `Transport` and pass it instead. Make sure to set the `workload.spiffe.io` metadata header to `'true'`, as the Workload API requires it:
+For advanced gRPC configuration (e.g. custom channel credentials), construct your own `@connectrpc/connect` `Transport` and pass it as `connection` instead. Make sure to set the `workload.spiffe.io` metadata header to `'true'`, as the Workload API requires it:
 
 ```ts
 import { createGrpcTransport } from '@connectrpc/connect-node';
 
-const spiffe = new SpiffeClient(
-  createGrpcTransport({
+const spiffe = new SpiffeClient({
+  connection: createGrpcTransport({
     baseUrl: 'https://spire-agent.internal:8081',
     interceptors: [
       (next) => (req) => {
@@ -85,18 +85,31 @@ const spiffe = new SpiffeClient(
       },
     ],
   }),
-);
-```
-
-Both forms accept an optional `SpiffeClientRetryOptions` as the last argument, to configure retries while fetching SVIDs (e.g. while the SPIRE agent socket isn't ready yet, or the workload isn't yet registered):
-
-```ts
-const spiffe = new SpiffeClient(undefined, {
-  maxAttempts: 6,
-  initialDelayMs: 1_000,
-  maxDelayMs: 30_000,
 });
 ```
+
+When you pass your own transport, the client does not own it: `close()` leaves the transport's connection open.
+
+### Client options
+
+The constructor takes an optional `SpiffeClientOptions` object:
+
+```ts
+const spiffe = new SpiffeClient({
+  retry: {
+    maxAttempts: 6,
+    initialDelayMs: 1_000,
+    maxDelayMs: 30_000,
+  },
+});
+```
+
+| Option              | Description                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `connection`        | Socket address or `Transport`. See [Connecting to the Workload API](#connecting-to-the-workload-api). |
+| `retry`             | `SpiffeClientRetryOptions` for Workload API calls. See [Retries](#retries).                           |
+| `jwtSvidCache`      | Cache for fetched JWT-SVIDs. See [Caching and Rotation](#caching-and-rotation).                       |
+| `validatedJwtCache` | Cache for validated JWT-SVIDs. See [Caching and Rotation](#caching-and-rotation).                     |
 
 `SpiffeClient` implements `AsyncDisposable`, so you can use `await using`:
 
@@ -122,18 +135,27 @@ async function fetchData(url: string) {
 }
 ```
 
-Use `getJwtSvid()` instead to also get the SPIFFE ID and expiration time:
+Use `getJwtSvid()` instead to also get the SPIFFE ID, hint, and expiration time. Unlike `getJwt()`, it returns `null` instead of throwing when the workload has no SVID:
 
 ```ts
 const svid = await spiffe.getJwtSvid('orders-api');
-console.log(svid.spiffeId, svid.token, svid.expiresAtMs);
+
+if (svid) {
+  console.log(svid.spiffeId, svid.token, svid.hint, svid.expiresAtMs);
+}
 ```
 
-Both `getJwt()` and `getJwtSvid()` accept an optional `hint` parameter to select a specific SVID when the agent issues more than one:
+Both `getJwt()` and `getJwtSvid()` accept an optional `SvidFilter` to select a specific SVID when the workload is entitled to more than one. Filter by the SVID's `hint`, its `spiffeId`, or both. When several SVIDs match, the first one returned by the Workload API is used:
 
 ```ts
-const token = await spiffe.getJwt('orders-api', 'public');
+const token = await spiffe.getJwt('orders-api', { hint: 'public' });
+
+const svid = await spiffe.getJwtSvid('orders-api', {
+  spiffeId: 'spiffe://example.org/orders-client',
+});
 ```
+
+All methods accept an optional `AbortSignal` as the last argument.
 
 ### Validating a JWT-SVID
 
@@ -156,13 +178,46 @@ async function authenticateRequest(req: Request) {
 
 ### Caching and Rotation
 
-SVIDs are cached for half of their remaining TTL and concurrent requests for the same audience are deduplicated.
+Fetched SVIDs are cached for half of their remaining lifetime, capped at 60 seconds, and concurrent requests for the same audience and filter are deduplicated.
 
-Validated tokens are cached too, so a burst of requests carrying the same bearer token only hits the Workload API once. The cache is keyed by token and expected audience, bounded in size with least-recently-used eviction, and an entry never outlives the `exp` claim of its token. Invalid tokens are never cached.
+Validated tokens are cached too, so a burst of requests carrying the same bearer token only hits the Workload API once. The cache is keyed by token and expected audience, and an entry never outlives the `exp` claim of its token, capped at 60 seconds. Invalid tokens are never cached.
+
+Both caches hold at most 1,000 entries by default.
+
+#### Custom caches
+
+To change the limits, pass your own `SpiffeCacheImpl`:
+
+```ts
+import { SpiffeCacheImpl, SpiffeClient } from '@jeengbe/spiffe';
+
+const spiffe = new SpiffeClient({
+  jwtSvidCache: new SpiffeCacheImpl({ maxEntries: 100, maxTtlMs: 30_000 }),
+  validatedJwtCache: new SpiffeCacheImpl({ maxEntries: 10_000 }),
+});
+```
+
+### Retries
+
+Workload API calls are retried with exponential backoff while the SPIRE agent isn't ready yet:
+
+- `getJwt()` and `getJwtSvid()` retry on `UNAVAILABLE` (the agent socket isn't ready) and `PERMISSION_DENIED` (the workload isn't registered yet, common at pod startup). If `PERMISSION_DENIED` persists after the last attempt, the workload is treated as having no SVID.
+- `validateJwt()` retries on `UNAVAILABLE` only.
+
+Configure retries with the `retry` option:
+
+| Option           | Default  | Description                                      |
+| ---------------- | -------- | ------------------------------------------------ |
+| `enabled`        | `true`   | Set to `false` to disable retries.               |
+| `maxAttempts`    | `6`      | Maximum number of attempts, including the first. |
+| `initialDelayMs` | `1_000`  | Delay before the first retry.                    |
+| `maxDelayMs`     | `30_000` | Upper bound for the delay between retries.       |
+
+The delay doubles after each attempt, up to `maxDelayMs`.
 
 ### Error handling
 
-`getJwt()` and `getJwtSvid()` throw `NoSvidError` when the Workload API returns no SVIDs:
+`getJwt()` throws `NoSvidError` when the Workload API returns no SVID matching the filter. The error's `filter` property holds the filter that was used:
 
 ```ts
 import { NoSvidError } from '@jeengbe/spiffe';
@@ -176,7 +231,7 @@ try {
 }
 ```
 
-`validateJwt()` returns `null` for invalid tokens rather than throwing.
+`getJwtSvid()` returns `null` in that case instead, and `validateJwt()` returns `null` for invalid or expired tokens. Other errors, such as a Workload API that stays unavailable after all retries, are thrown as `ConnectError`.
 
 ## KafkaJS Integration
 
@@ -203,6 +258,16 @@ createKafkajsSaslMechanism('kafka-cluster', {
   logicalCluster: 'lkc-abc123',
   identityPoolId: 'pool-xyz',
 });
+```
+
+### Selecting an SVID and Client
+
+Both KafkaJS helpers take an optional `SvidFilter` as the third argument and a `SpiffeJwtClient` (or a function that creates one) as the fourth. By default, each helper creates its own `SpiffeClient`. Pass an existing client to share its connection and caches:
+
+```ts
+declare const spiffe: SpiffeClient;
+
+createKafkajsSaslMechanism('kafka-cluster', undefined, { hint: 'kafka' }, spiffe);
 ```
 
 ### Confluent Schema Registry SPIFFE Authentication
