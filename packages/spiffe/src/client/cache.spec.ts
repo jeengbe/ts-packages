@@ -3,8 +3,6 @@ import { SpiffeCacheImpl } from './cache.js';
 import { setTimeout } from 'node:timers/promises';
 import { beforeEach, describe, expect, it, vitest } from 'vitest';
 
-type Compute = (signal: AbortSignal) => Promise<CacheComputeResult<string>>;
-
 describe('SpiffeCacheImpl', () => {
   let cache: SpiffeCacheImpl<string>;
 
@@ -84,10 +82,13 @@ describe('SpiffeCacheImpl', () => {
     await cache.getOrCompute(['a'], compute);
     await cache.getOrCompute(['b'], compute);
     await cache.getOrCompute(['c'], compute);
-    await cache.getOrCompute(['a'], compute);
+    expect(compute).toHaveBeenCalledTimes(3);
+
     await cache.getOrCompute(['b'], compute);
     await cache.getOrCompute(['c'], compute);
+    expect(compute).toHaveBeenCalledTimes(3);
 
+    await cache.getOrCompute(['a'], compute);
     expect(compute).toHaveBeenCalledTimes(4);
   });
 
@@ -301,5 +302,7 @@ describe('SpiffeCacheImpl', () => {
     });
   });
 });
+
+type Compute = (signal: AbortSignal) => Promise<CacheComputeResult<string>>;
 
 const abortError = expect.objectContaining({ name: 'AbortError' });

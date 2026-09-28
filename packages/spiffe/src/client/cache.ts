@@ -4,7 +4,7 @@ import { TTLCache } from '@isaacs/ttlcache';
  * `[value, ttlMs]` caches `value` for `ttlMs`.
  * `null` means "no value": it is returned to the callers but not cached.
  */
-export type CacheComputeResult<T> = [value: T, ttlMs: number] | null;
+export type CacheComputeResult<T> = readonly [value: T, ttlMs: number] | null;
 
 /**
  * Cache for SPIFFE operations.
@@ -80,6 +80,7 @@ export class SpiffeCacheImpl<T> implements SpiffeCache<T> {
 
     this.inFlight.clear();
     this.cache.clear();
+    this.cache.cancelTimer();
   }
 
   private start(
