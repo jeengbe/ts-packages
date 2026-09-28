@@ -11,12 +11,10 @@ import { beforeAll, beforeEach, describe, expect, it, Mock, vitest } from 'vites
 
 type FetchJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchJWTSVID'];
 type ValidateJWTSVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['validateJWTSVID'];
-type FetchX509SVIDImpl = ServiceImpl<typeof SpiffeWorkloadAPI>['fetchX509SVID'];
 
 describe('SpiffeClient', () => {
   let fetchJWTSVID: Mock<FetchJWTSVIDImpl>;
   let validateJWTSVID: Mock<ValidateJWTSVIDImpl>;
-  let fetchX509SVID: Mock<FetchX509SVIDImpl>;
   let client: SpiffeClient;
 
   // In-memory transport routed straight to the mocks above, no real socket involved. Retry
@@ -27,7 +25,6 @@ describe('SpiffeClient', () => {
       router.service(SpiffeWorkloadAPI, {
         fetchJWTSVID: (req, ctx) => fetchJWTSVID(req, ctx),
         validateJWTSVID: (req, ctx) => validateJWTSVID(req, ctx),
-        fetchX509SVID: (req, ctx) => fetchX509SVID(req, ctx),
       });
     });
   }
@@ -37,9 +34,6 @@ describe('SpiffeClient', () => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
     validateJWTSVID = vitest.fn<ValidateJWTSVIDImpl>(() => {
-      throw new ConnectError('Not implemented', Code.Unimplemented);
-    });
-    fetchX509SVID = vitest.fn<FetchX509SVIDImpl>(() => {
       throw new ConnectError('Not implemented', Code.Unimplemented);
     });
 
