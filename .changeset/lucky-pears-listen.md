@@ -2,4 +2,4 @@
 "@jeengbe/spiffe": minor
 ---
 
-feat: add `getSpiffeId()` to fetch the SPIFFE ID of the workload
+feat: add `SpiffeIdentityClient` interface with `getSpiffeId()` to fetch the SPIFFE ID of the workload

@@ -7,7 +7,7 @@ import type {
 import { SpiffeWorkloadAPI } from '../proto/workloadapi_pb.js';
 import { SpiffeCache, SpiffeCacheImpl } from './cache.js';
 import { NoSvidError } from './error.js';
-import { SpiffeJwtClient, SvidFilter } from './interface.js';
+import { SpiffeIdentityClient, SpiffeJwtClient, SvidFilter } from './interface.js';
 import { retry } from './retry.js';
 import type {
   JwtSvid,
@@ -31,7 +31,7 @@ const VALIDATED_JWT_CACHE_MAX_TTL_MS = 60_000;
 /**
  * The SPIFFE Client provides convenience APIs for interacting with the SPIFFE Workload API.
  */
-export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
+export class SpiffeClient implements SpiffeJwtClient, SpiffeIdentityClient, AsyncDisposable {
   private readonly jwtSvidCache: SpiffeCache<JwtSvid>;
   private readonly spiffeIdCache: SpiffeCache<string>;
   private readonly validatedJwtCache: SpiffeCache<ValidatedJwtSvid>;
@@ -122,6 +122,30 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     );
   }
 
+  async validateJwt(
+    expectedAudience: string,
+    token: string,
+    signal?: AbortSignal,
+  ): Promise<ValidatedJwtSvid | null> {
+    return this.validatedJwtCache.getOrCompute(
+      [token, expectedAudience],
+      async (cacheSignal) => {
+        const validated = await this._validateJwt(expectedAudience, token, cacheSignal);
+
+        if (!validated) {
+          return null;
+        }
+
+        const expiresAtMs = getExpiresAtMs(validated.claims);
+        // https://github.com/spiffe/spiffe/blob/f97c46dfd0ff0d4e412cce5c73846a9ca32a99a2/standards/JWT-SVID.md#33-expiration-time Required
+        assert.ok(expiresAtMs !== null, 'JWT-SVID does not contain an "exp" claim');
+
+        return [validated, expiresAtMs - Date.now()];
+      },
+      signal,
+    );
+  }
+
   async getSpiffeId(filter?: SvidFilter, signal?: AbortSignal): Promise<string> {
     const spiffeId = await this.spiffeIdCache.getOrCompute(
       [filter?.hint ?? '', filter?.spiffeId ?? ''],
@@ -146,30 +170,6 @@ export class SpiffeClient implements SpiffeJwtClient, AsyncDisposable {
     }
 
     return spiffeId;
-  }
-
-  async validateJwt(
-    expectedAudience: string,
-    token: string,
-    signal?: AbortSignal,
-  ): Promise<ValidatedJwtSvid | null> {
-    return this.validatedJwtCache.getOrCompute(
-      [token, expectedAudience],
-      async (cacheSignal) => {
-        const validated = await this._validateJwt(expectedAudience, token, cacheSignal);
-
-        if (!validated) {
-          return null;
-        }
-
-        const expiresAtMs = getExpiresAtMs(validated.claims);
-        // https://github.com/spiffe/spiffe/blob/f97c46dfd0ff0d4e412cce5c73846a9ca32a99a2/standards/JWT-SVID.md#33-expiration-time Required
-        assert.ok(expiresAtMs !== null, 'JWT-SVID does not contain an "exp" claim');
-
-        return [validated, expiresAtMs - Date.now()];
-      },
-      signal,
-    );
   }
 
   private async _getJwtSvid(
