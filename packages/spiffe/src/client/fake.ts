@@ -1,8 +1,9 @@
-import { SpiffeJwtClient } from './interface.js';
+import { SpiffeIdentityClient, SpiffeJwtClient } from './interface.js';
 import { vitest } from 'vitest';
 
-export class FakeSpiffeClient implements SpiffeJwtClient {
+export class FakeSpiffeClient implements SpiffeJwtClient, SpiffeIdentityClient {
   getJwt = vitest.fn<SpiffeJwtClient['getJwt']>();
   getJwtSvid = vitest.fn<SpiffeJwtClient['getJwtSvid']>();
   validateJwt = vitest.fn<SpiffeJwtClient['validateJwt']>();
+  getSpiffeId = vitest.fn<SpiffeIdentityClient['getSpiffeId']>();
 }

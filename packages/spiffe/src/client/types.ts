@@ -50,6 +50,13 @@ export interface SpiffeClientOptions {
   jwtSvidCache?: SpiffeCache<JwtSvid>;
 
   /**
+   * Cache for own SPIFFE IDs.
+   *
+   * @default SpiffeCacheImpl[maxEntries=1000;maxTtlMs=60_000]
+   */
+  spiffeIdCache?: SpiffeCache<string>;
+
+  /**
    * Cache for validated JWT-SVIDs.
    *
    * @default SpiffeCacheImpl[maxEntries=1000;maxTtlMs=60_000]

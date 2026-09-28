@@ -109,6 +109,7 @@ const spiffe = new SpiffeClient({
 | `connection`        | Socket address or `Transport`. See [Connecting to the Workload API](#connecting-to-the-workload-api). |
 | `retry`             | `SpiffeClientRetryOptions` for Workload API calls. See [Retries](#retries).                           |
 | `jwtSvidCache`      | Cache for fetched JWT-SVIDs. See [Caching and Rotation](#caching-and-rotation).                       |
+| `spiffeIdCache`     | Cache for the workload's SPIFFE IDs. See [Caching and Rotation](#caching-and-rotation).               |
 | `validatedJwtCache` | Cache for validated JWT-SVIDs. See [Caching and Rotation](#caching-and-rotation).                     |
 
 `SpiffeClient` implements `AsyncDisposable`, so you can use `await using`:
@@ -176,13 +177,27 @@ async function authenticateRequest(req: Request) {
 }
 ```
 
+### Looking up the Workload's SPIFFE ID
+
+`SpiffeClient` also implements the `SpiffeIdentityClient` interface. Use `getSpiffeId()` to look up the workload's own SPIFFE ID:
+
+```ts
+declare const spiffe: SpiffeIdentityClient;
+
+const spiffeId = await spiffe.getSpiffeId(); // spiffe://example.org/orders-worker
+```
+
+`getSpiffeId()` accepts an optional `SvidFilter` to select a specific SVID when the workload is entitled to more than one.
+
 ### Caching and Rotation
 
 Fetched SVIDs are cached for half of their remaining lifetime, capped at 60 seconds, and concurrent requests for the same audience and filter are deduplicated.
 
 Validated tokens are cached too, so a burst of requests carrying the same bearer token only hits the Workload API once. The cache is keyed by token and expected audience, and an entry never outlives the `exp` claim of its token, capped at 60 seconds. Invalid tokens are never cached.
 
-Both caches hold at most 1,000 entries by default.
+The SPIFFE IDs returned by `getSpiffeId()` are cached per filter for half of the remaining lifetime of the SVID they were read from, capped at 60 seconds.
+
+All caches hold at most 1,000 entries by default.
 
 #### Custom caches
 
@@ -193,6 +208,7 @@ import { SpiffeCacheImpl, SpiffeClient } from '@jeengbe/spiffe';
 
 const spiffe = new SpiffeClient({
   jwtSvidCache: new SpiffeCacheImpl({ maxEntries: 100, maxTtlMs: 30_000 }),
+  spiffeIdCache: new SpiffeCacheImpl({ maxEntries: 10 }),
   validatedJwtCache: new SpiffeCacheImpl({ maxEntries: 10_000 }),
 });
 ```

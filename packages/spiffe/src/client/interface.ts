@@ -52,6 +52,20 @@ export interface SpiffeJwtClient {
 }
 
 /**
+ * The SPIFFE Identity Client provides APIs for looking up the workload's own identity.
+ */
+export interface SpiffeIdentityClient {
+  /**
+   * Fetches the SPIFFE ID of the workload.
+   * If the workload is entitled to multiple SVIDs, the first one returned by the
+   * Workload API is used.
+   *
+   * @throws {NoSvidError} if the API returns no SVID.
+   */
+  getSpiffeId(filter?: SvidFilter, signal?: AbortSignal): Promise<string>;
+}
+
+/**
  * Options for filtering SVIDs when fetching from the Workload API. If multiple filters are provided,
  * a SVID has to match all; if multiple SVIDs match, the first one returned by the Workload API is used.
  */
