@@ -1,5 +1,11 @@
 # @jeengbe/spiffe
 
+## 2.1.0
+
+### Minor Changes
+
+- [#26](https://github.com/jeengbe/ts-packages/pull/26) [`758598a`](https://github.com/jeengbe/ts-packages/commit/758598a5623774830005bd03c9accd46b1f61a00) - feat: add `SpiffeIdentityClient` interface with `getSpiffeId()` to fetch the SPIFFE ID of the workload
+
 ## 2.0.0
 
 ### Major Changes
