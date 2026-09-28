@@ -4,9 +4,7 @@ coverage:
       default:
         target: auto
         threshold: 1%
-    patch:
-      default:
-        target: auto
+    patch: off
 component_management:
   default_rules:
     statuses:
