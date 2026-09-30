@@ -19,21 +19,17 @@ export interface CacheOptions<Entries extends Record<string, unknown> = Record<s
   deserialize?: Deserialize<Entries>;
 }
 
-type Serialize<Entries extends Record<string, unknown>> = <
-  K extends keyof Entries & string = keyof Entries & string,
->(
+type Serialize<Entries extends Record<string, unknown>> = (
   this: void,
-  val: Entries[K],
-  key: K,
+  val: Entries[keyof Entries & string],
+  key: keyof Entries & string,
 ) => string;
 
-type Deserialize<Entries extends Record<string, unknown>> = <
-  K extends keyof Entries & string = keyof Entries & string,
->(
+type Deserialize<Entries extends Record<string, unknown>> = (
   this: void,
   val: string,
-  key: K,
-) => Entries[K];
+  key: keyof Entries & string,
+) => Entries[keyof Entries & string];
 
 /**
  * Events emitted by the {@link Cache} class.
@@ -120,7 +116,8 @@ export class Cache<
 
     this.emit('read', key, true, CacheOperation.Get);
 
-    return this.deserialize(res, key);
+    // oxlint-disable-next-line typescript/consistent-type-assertions
+    return this.deserialize(res, key) as Entries[K];
   }
 
   /**
@@ -387,7 +384,8 @@ export class Cache<
 
     this.emit('read', key, true, CacheOperation.Cached);
 
-    return this.deserialize(res, key);
+    // oxlint-disable-next-line typescript/consistent-type-assertions
+    return this.deserialize(res, key) as Entries[K];
   }
 
   /**
@@ -443,7 +441,8 @@ export class Cache<
         missingIndices.push(i);
       } else {
         this.emit('read', key, true, CacheOperation.Mcached);
-        toReturn[i] = this.deserialize(result, key);
+        // oxlint-disable-next-line typescript/consistent-type-assertions
+        toReturn[i] = this.deserialize(result, key) as Entries[K];
       }
     });
 
