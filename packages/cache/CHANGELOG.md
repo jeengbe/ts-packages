@@ -1,5 +1,11 @@
 # @jeengbe/cache
 
+## 7.0.12
+
+### Patch Changes
+
+- [#28](https://github.com/jeengbe/ts-packages/pull/28) [`6a8f09a`](https://github.com/jeengbe/ts-packages/commit/6a8f09a37ecaf6f99c82a8bfa7f4d4e9267d32a8) - fix: make deserialize constructable again
+
 ## 7.0.11
 
 ### Patch Changes
