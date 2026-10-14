@@ -189,7 +189,7 @@ export class SpiffeClient implements SpiffeJwtClient, SpiffeIdentityClient, Asyn
             retrySignal ? { signal: retrySignal } : undefined,
           ),
         this.retryOptions,
-        (err) => err instanceof ConnectError && isRetriableFetchSvidErrorCode(err.code),
+        (err) => err instanceof ConnectError && isRetriableFetchSvidError(err),
         signal,
       );
     } catch (err) {
@@ -221,7 +221,7 @@ export class SpiffeClient implements SpiffeJwtClient, SpiffeIdentityClient, Asyn
             retrySignal ? { signal: retrySignal } : undefined,
           ),
         this.retryOptions,
-        (err) => err instanceof ConnectError && isRetriableValidateJwtErrorCode(err.code),
+        (err) => err instanceof ConnectError && isRetriableValidateJwtError(err),
         signal,
       );
     } catch (err) {
@@ -314,13 +314,23 @@ function getFirstSvid<T extends JWTSVID | X509SVID>(
   return svids.find((s) => !filter?.hint || s.hint === filter.hint);
 }
 
-function isRetriableFetchSvidErrorCode(code: Code): boolean {
+function isRetriableFetchSvidError(error: ConnectError): boolean {
   // PermissionDenied: workload not yet registered in SPIRE (transient at pod startup)
-  // Unavailable: SPIRE agent socket not ready yet
-  return code === Code.PermissionDenied || code === Code.Unavailable;
+  return isSocketNotReadyYetError(error) || error.code === Code.PermissionDenied;
 }
 
-function isRetriableValidateJwtErrorCode(code: Code): boolean {
-  // Unavailable: SPIRE agent socket not ready yet
-  return code === Code.Unavailable;
+function isRetriableValidateJwtError(error: ConnectError): boolean {
+  return isSocketNotReadyYetError(error);
+}
+
+function isSocketNotReadyYetError(error: ConnectError): boolean {
+  // Unavailable: SPIRE Agent socket not ready yet
+  // ENOENT: (either misconfiguration, which is unfortunate that we still retry, or in most cases):
+  // the socket file does not exist yet because the Node process started before the SPIRE Agent did
+  // (e.g. new Kubernetes Node spins up and the workload Pod is ready before SPIRE)
+  return (
+    error.code === Code.Unavailable ||
+    // oxlint-disable-next-line typescript/consistent-type-assertions -- ErrnoException has only optional properties
+    (error.cause instanceof Error && (error.cause as NodeJS.ErrnoException).code === 'ENOENT')
+  );
 }
