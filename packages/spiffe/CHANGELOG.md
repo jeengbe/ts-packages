@@ -1,5 +1,11 @@
 # @jeengbe/spiffe
 
+## 2.1.1
+
+### Patch Changes
+
+- [#31](https://github.com/jeengbe/ts-packages/pull/31) [`9ac2b5e`](https://github.com/jeengbe/ts-packages/commit/9ac2b5e77d9f8e4b501880ed3480d15150a7641d) - fix: retry on ENOENT
+
 ## 2.1.0
 
 ### Minor Changes
